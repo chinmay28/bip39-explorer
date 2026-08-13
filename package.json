@@ -1,0 +1,26 @@
+{
+  "name": "bip39-explorer",
+  "private": true,
+  "version": "0.0.0",
+  "description": "An offline explorer for the BIP-39 English wordlist: a Go server serving an installable PWA over a precomputed relation graph.",
+  "license": "AGPL-3.0-only",
+  "author": "Chinmay Manjunath",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @bip39-explorer/web",
+    "build": "npm run build --workspaces --if-present && npm run build:single && npm run build:embed && npm run build:server",
+    "build:single": "node scripts/bundle-single.mjs",
+    "build:embed": "node scripts/embed-client.mjs",
+    "build:server": "cd server && CGO_ENABLED=0 go build -trimpath -ldflags \"-s -w -X github.com/chinmay28/bip39-explorer/server/internal/version.Patch=$(node ../scripts/version.mjs --patch)\" -o bin/bip39-explorer ./cmd/bip39-explorer",
+    "test": "npm run test --workspaces --if-present && npm run test:index && npm run test:server",
+    "test:index": "python3 tools/check_index.py",
+    "test:server": "cd server && go test ./...",
+    "typecheck": "npm run typecheck --workspaces --if-present && npm run vet:server",
+    "vet:server": "cd server && go vet ./..."
+  },
+  "engines": {
+    "node": ">=20.10.0"
+  }
+}

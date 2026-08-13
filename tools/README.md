@@ -36,6 +36,11 @@ curl -fL -o "$CORPORA/numberbatch-en-19.08.txt.gz" \
 python3 tools/check_index.py
 ```
 
+The client consumes the output directly — `apps/web/src/lib/index-data.ts`
+imports it and `apps/web/src/lib/index-data.test.ts` asserts the client's own
+assumptions about it, so a regeneration that breaks one of them fails
+`npm test` rather than a browser.
+
 The corpora are not committed — they are large and versioned upstream. The
 output is committed, and `build_index.py` is deterministic, so the same three
 files always produce the same index.
@@ -51,7 +56,7 @@ files always produce the same index.
 | `bip39_semantics/merge.py` | Fuses the three into one ranked neighbour list per word. |
 | `bip39_semantics/cluster.py` | Louvain communities over the fused graph, as emergent topics. |
 | `build_index.py` | Orchestrates the above and writes the JSON. |
-| `check_index.py` | Validates the committed index. Run it after every regeneration. |
+| `check_index.py` | Validates the committed index. Run it after every regeneration — `npm test` does. |
 
 Each module's docstring explains the judgement calls in it — they are not
 obvious, and several were arrived at by watching the output get worse.
