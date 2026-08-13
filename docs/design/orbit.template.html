@@ -1,9 +1,10 @@
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BIP39 Orbit</title>
 
 <style>
 /* ------------------------------------------------------------------ *
  * Tokens — CountRoster's palette (apps/web/src/styles.css) verbatim,
- * plus the six relation-family hues this view needs. Defined on bare
+ * plus the seven relation-family hues this view needs. Defined on bare
  * :root for light, then redefined for both dark states.
  * ------------------------------------------------------------------ */
 :root {
@@ -18,13 +19,13 @@
   --radius: 12px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
+  --tab-bar-height: 3.6rem;
 
   /* Relation families. Hue says what *kind* of knowledge an edge is;
-     the label on the spoke says which relation exactly. Eighteen
-     relations would need eighteen indistinguishable colours.
-     "assoc" is separate from "link" on purpose: an asserted "related to"
-     and a pair the embeddings merely observed keeping company are
-     different sorts of claim and should not share a colour. */
+     the label on the spoke says which relation exactly — eighteen
+     relations would need eighteen indistinguishable colours. "assoc" is
+     separate from "link" on purpose: something a source asserted and
+     something the embeddings merely observed are different claims. */
   --fam-identity: #0d8579;
   --fam-identity-bg: #dcf2f0;
   --fam-hierarchy: #4a4ec6;
@@ -101,155 +102,230 @@ body {
   font-family: var(--ui);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
 }
+
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .app {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 0 1rem 3rem;
+  padding: 0 0.85rem;
+  /* Room for the fixed tab bar on phones; the bar is gone above 860px. */
+  padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 1.5rem);
 }
+@media (min-width: 860px) { .app { padding: 0 1rem 3rem; } }
 
-/* ---------------- header: CountRoster's brand lockup ---------------- */
+/* ---------------- header ---------------- */
 .app__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.85rem 0;
+  padding: 0.6rem 0 0.5rem;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  z-index: 20;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  z-index: 30;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
   backdrop-filter: saturate(1.4) blur(10px);
 }
-.brand { display: inline-flex; align-items: flex-start; gap: 0.4rem; }
-.brand__logo { width: 1.6rem; height: 1.6rem; border-radius: 0.35rem; display: block; flex: none; }
-.brand__text { display: flex; flex-direction: column; line-height: 1.15; }
-.brand__name { font-family: var(--mono); font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
+.brand { display: inline-flex; align-items: flex-start; gap: 0.4rem; min-width: 0; }
+.brand__logo { width: 1.5rem; height: 1.5rem; border-radius: 0.35rem; display: block; flex: none; }
+.brand__text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.brand__name { font-family: var(--mono); font-weight: 700; font-size: 1rem; letter-spacing: -0.01em; }
 .brand__version {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 500;
   letter-spacing: 0.05em;
   color: var(--muted);
 }
-.app__note { font-size: 0.72rem; color: var(--muted); text-align: right; max-width: 22ch; }
+.app__nav { display: none; gap: 0.25rem; }
+@media (min-width: 860px) { .app__nav { display: flex; } }
+.app__nav button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.app__nav button[aria-current="true"] {
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 600;
+}
+.app__offline {
+  display: none;
+  margin: 0;
+  font-size: 0.66rem;
+  color: var(--muted);
+  text-align: right;
+  line-height: 1.3;
+}
+@media (min-width: 1040px) { .app__offline { display: block; } }
 
 /* ---------------- search ---------------- */
 .search {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.5rem;
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 0.6rem 0.8rem;
+  padding: 0.55rem 0.75rem;
   box-shadow: var(--shadow);
-  margin: 1.25rem 0 0.6rem;
+  margin: 0.8rem 0 0.5rem;
 }
-.search svg { width: 1.1rem; height: 1.1rem; color: var(--muted); flex: none; }
+.search svg { width: 1.05rem; height: 1.05rem; color: var(--muted); flex: none; }
 .search input {
-  font: inherit;
   font-family: var(--mono);
-  font-size: 1.05rem;
+  /* 16px minimum, or iOS zooms the whole page when the field takes focus. */
+  font-size: 16px;
   border: 0;
   background: none;
   color: var(--text);
   width: 100%;
+  min-width: 0;
   outline: none;
 }
 .search__count {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--muted);
   flex: none;
-  white-space: nowrap;
 }
 
-.hits { display: flex; flex-wrap: wrap; gap: 0.3rem; min-height: 1.9rem; }
+.hits { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.hits:empty { display: none; }
 .hit {
   font-family: var(--mono);
-  font-size: 0.82rem;
-  padding: 0.22rem 0.6rem;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
-.hit:hover { border-color: var(--primary); }
-.hit:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
-.hit em { font-style: normal; color: var(--muted); font-size: 0.72rem; margin-left: 0.3rem; }
+.hit em { font-style: normal; color: var(--muted); font-size: 0.7rem; margin-left: 0.3rem; }
 .hit mark {
   background: color-mix(in srgb, var(--primary) 40%, transparent);
   color: inherit;
   border-radius: 3px;
 }
-.hits__empty { font-size: 0.82rem; color: var(--muted); padding: 0.25rem 0; }
+.muted-line { font-size: 0.8rem; color: var(--muted); }
 
 /* ---------------- trail ---------------- */
 .trail {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  flex-wrap: wrap;
+  gap: 0.2rem;
   font-family: var(--mono);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   color: var(--muted);
-  margin: 0.9rem 0 0;
-  min-height: 1.6rem;
+  margin: 0.6rem 0 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 0.15rem;
 }
+.trail::-webkit-scrollbar { display: none; }
 .trail__label {
   font-family: var(--ui);
-  font-size: 0.64rem;
+  font-size: 0.6rem;
   letter-spacing: 0.13em;
   text-transform: uppercase;
+  flex: none;
 }
 .trail button {
-  font: inherit;
   font-family: var(--mono);
   border: 0;
   background: none;
   color: var(--muted);
   cursor: pointer;
-  padding: 0.1rem 0.2rem;
+  padding: 0.15rem 0.25rem;
   border-radius: 4px;
+  flex: none;
 }
-.trail button:hover { color: var(--text); background: var(--sunk); }
 .trail button:last-child { color: var(--text); font-weight: 700; }
 
-/* ---------------- main split ---------------- */
+/* ---------------- layout ---------------- */
 .split {
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
   grid-template-columns: minmax(0, 1fr);
-  margin-top: 0.9rem;
+  margin-top: 0.7rem;
 }
-@media (min-width: 900px) {
-  .split { grid-template-columns: minmax(0, 1fr) 17rem; align-items: start; }
+@media (min-width: 860px) {
+  .split { grid-template-columns: minmax(0, 1fr) 17.5rem; align-items: start; gap: 1rem; }
 }
 
-.stage {
+.panel {
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 0.5rem;
   min-width: 0;
 }
-.orbit { display: block; width: 100%; max-width: 47rem; margin: 0 auto; height: auto; }
-.orbit__center { font-family: var(--mono); font-size: 21px; font-weight: 700; }
-.orbit__word { font-family: var(--mono); font-size: 12.5px; }
-.orbit__pill { cursor: pointer; }
+.panel__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+}
+.panel__title {
+  font-size: 0.64rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+  margin-right: auto;
+}
+.chipset { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.chipset button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.74rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.chipset button[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 600;
+}
+
+/* ---------------- map ---------------- */
+.map { padding: 0.4rem; }
+.orbit {
+  display: block;
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  height: auto;
+  touch-action: manipulation;
+}
+.orbit__center { font-family: var(--mono); font-weight: 700; }
+.orbit__word { font-family: var(--mono); }
+.orbit__pill, .orbit__more { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .orbit__pill:hover rect { filter: brightness(0.96); }
-.orbit__pill:focus-visible { outline: none; }
-.orbit__pill:focus-visible rect { stroke-width: 2.5; }
+.orbit__pill:focus-visible, .orbit__more:focus-visible { outline: none; }
+.orbit__pill:focus-visible rect, .orbit__more:focus-visible circle { stroke-width: 2.6; }
 .orbit__label {
-  font-size: 8.4px;
-  letter-spacing: 1.3px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   font-weight: 700;
   paint-order: stroke;
@@ -257,7 +333,120 @@ body {
   stroke-width: 3.5px;
   stroke-linejoin: round;
 }
-.orbit__empty { font-size: 12px; fill: var(--muted); font-family: var(--ui); }
+.orbit__more text { font-family: var(--mono); font-weight: 700; }
+.orbit__empty { fill: var(--muted); font-family: var(--ui); }
+
+/* ---------------- tree ---------------- */
+.tree { padding: 0.25rem 0 0.4rem; max-height: 34rem; overflow-y: auto; }
+.tree__row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.6rem;
+  padding-right: 0.6rem;
+}
+.tree__row:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); }
+.tree__row--current { background: color-mix(in srgb, var(--primary) 15%, transparent); }
+.tree__rail { width: 3px; height: 1.7rem; border-radius: 2px; flex: none; }
+.tree__caret {
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  -webkit-tap-highlight-color: transparent;
+}
+.tree__caret:hover { background: var(--sunk); color: var(--text); }
+.tree__caret[data-leaf="true"] { visibility: hidden; }
+.tree__word {
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.35rem 0.15rem;
+  -webkit-tap-highlight-color: transparent;
+}
+.tree__rel {
+  font-size: 0.67rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tree__meter {
+  margin-left: auto;
+  width: 2.4rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--border);
+  flex: none;
+  overflow: hidden;
+}
+.tree__meter i { display: block; height: 100%; border-radius: 999px; }
+.tree__note { margin: 0; padding: 0.5rem 0.7rem; font-size: 0.75rem; color: var(--muted); }
+
+/* ---------------- path ---------------- */
+.path { padding: 0.7rem; display: grid; gap: 0.7rem; }
+.path__form { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+.path__form input {
+  font-family: var(--mono);
+  font-size: 16px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  min-width: 0;
+  flex: 1 1 8rem;
+}
+.path__go {
+  border: 0;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 600;
+  padding: 0.5rem 0.95rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.path__chain { display: grid; gap: 0.15rem; }
+.path__node {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--sunk);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  width: 100%;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+  min-height: 2.6rem;
+}
+.path__node b { font-family: var(--mono); font-size: 0.95rem; }
+.path__link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding-left: 1.1rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.path__link::before {
+  content: "";
+  width: 2px;
+  height: 1.1rem;
+  background: var(--border);
+  border-radius: 2px;
+}
+.path__summary { margin: 0; font-size: 0.78rem; color: var(--muted); }
 
 /* ---------------- detail card ---------------- */
 .card {
@@ -265,97 +454,134 @@ body {
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 0.9rem;
+  padding: 0.85rem;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.6rem;
   border-top: 4px solid var(--primary);
 }
-.card__word { font-family: var(--mono); font-size: 1.75rem; font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; }
-.card__gloss { font-size: 0.85rem; margin: 0; }
+.card__word { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; }
+.card__gloss { font-size: 0.84rem; margin: 0; }
 .card__facts {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.18rem 0.7rem;
-  font-size: 0.76rem;
+  gap: 0.15rem 0.7rem;
+  font-size: 0.75rem;
   margin: 0;
 }
 .card__facts dt { color: var(--muted); }
 .card__facts dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.card__sub {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
 .card__topic {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   font-weight: 600;
-  padding: 0.2rem 0.6rem;
+  padding: 0.3rem 0.65rem;
   border-radius: 999px;
   background: var(--fam-link-bg);
   color: var(--fam-link);
   border: 0;
   cursor: pointer;
-  font-family: var(--ui);
   align-self: flex-start;
 }
-.card__topic:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
-
-/* ---------------- letter-level strip ---------------- */
-.letters {
-  border: 1px solid var(--border);
-  background: var(--sunk);
-  border-radius: var(--radius);
-  padding: 0.8rem 0.9rem;
-  display: grid;
-  gap: 0.55rem;
-  margin-top: 1rem;
-}
-.letters__head {
-  font-size: 0.64rem;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 700;
-}
-.letters__row { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.6rem; align-items: baseline; }
-@media (max-width: 560px) { .letters__row { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; } }
-.letters__kind { font-size: 0.74rem; color: var(--muted); }
-.letters__words { display: flex; flex-wrap: wrap; gap: 0.28rem; }
-.letters__words button {
+.pill-row { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.pill {
   font-family: var(--mono);
   font-size: 0.8rem;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   border-radius: 999px;
-  padding: 0.12rem 0.5rem;
+  padding: 0.28rem 0.6rem;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
-.letters__words button:hover { border-color: var(--primary); }
-.letters__words button:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.pill:hover { border-color: var(--primary); }
+
+/* ---------------- letters strip ---------------- */
+.letters {
+  border: 1px solid var(--border);
+  background: var(--sunk);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.8rem;
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+.letters__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.2rem; }
+@media (min-width: 620px) {
+  .letters__row { grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.6rem; align-items: baseline; }
+}
+.letters__kind { font-size: 0.73rem; color: var(--muted); }
 
 /* ---------------- legend + footer ---------------- */
-.legend { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 1rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.85rem; }
 .legend span {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  padding: 0.16rem 0.55rem;
+  padding: 0.16rem 0.5rem;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
 }
-.legend span::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; }
+.legend span::before { content: ""; width: 0.42rem; height: 0.42rem; border-radius: 50%; background: currentColor; }
 
 .foot {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
   border-top: 1px solid var(--border);
-  font-size: 0.74rem;
+  font-size: 0.73rem;
   color: var(--muted);
 }
 .foot code { font-family: var(--mono); }
 .foot p { margin: 0 0 0.4rem; max-width: 74ch; }
 .foot b { color: var(--text); }
+
+/* ---------------- mobile tab bar (CountRoster's) ---------------- */
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-top: 1px solid var(--border);
+}
+@media (min-width: 860px) { .tab-bar { display: none; } }
+.tab-bar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-bar button[aria-current="true"] { color: var(--primary); font-weight: 700; }
+.tab-bar svg { width: 1.3rem; height: 1.3rem; display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
 </style>
 
 <div class="app">
@@ -374,15 +600,17 @@ body {
         <span class="brand__version" id="version">v1.0.0</span>
       </span>
     </div>
-    <p class="app__note">Offline word reference. Never type a real seed phrase.</p>
+    <nav class="app__nav" id="nav" aria-label="View"></nav>
+    <p class="app__offline">No network calls, ever.<br>Never type a real seed phrase.</p>
   </header>
 
   <div class="search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>
     </svg>
-    <input id="q" type="search" placeholder="search 2048 words — try ocen, krane, or bird"
-           spellcheck="false" autocomplete="off" aria-label="Search the BIP-39 word list">
+    <input id="q" type="search" placeholder="search 2048 words"
+           spellcheck="false" autocomplete="off" enterkeyhint="go"
+           aria-label="Search the BIP-39 word list">
     <span class="search__count" id="count"></span>
   </div>
   <div class="hits" id="hits"></div>
@@ -390,44 +618,47 @@ body {
   <nav class="trail" id="trail" aria-label="Words visited"></nav>
 
   <div class="split">
-    <div class="stage">
-      <svg class="orbit" id="orbit" viewBox="-320 -192 640 384" role="img"
-           aria-labelledby="orbit-title"><title id="orbit-title">Relation map</title></svg>
-    </div>
+    <div id="stage"></div>
     <aside class="card" id="card"></aside>
   </div>
 
   <section class="letters" id="letters"></section>
-
   <div class="legend" id="legend"></div>
 
   <footer class="foot">
-    <p><b>Where the relations come from.</b> The coloured map is precomputed:
-      WordNet 3.0 for typed lexical relations, ConceptNet 5.7 for common-sense
-      assertions, and ConceptNet Numberbatch 19.08 for associative similarity,
-      fused into <code>data/semantic-index.json</code> and committed. The strip
-      below the map is computed live in the browser from the letters
-      themselves.</p>
+    <p><b>Everything here runs offline.</b> The relation graph is precomputed —
+      WordNet 3.0, ConceptNet 5.7 and ConceptNet Numberbatch 19.08, fused into
+      <code>data/semantic-index.json</code> and committed. Walking it to any
+      depth, finding the strongest path between two words, ranking two-step
+      neighbours, and all the letter and sound matching happen in this page.
+      No server, no model, no network request.</p>
     <p>Word list <code>bip-0039/english.txt</code>, 2048 words, sha256
-      <code id="sha">…</code>. Semantic index CC BY-SA 4.0 after ConceptNet.</p>
+      <code id="sha">…</code>. <span id="graph-stats"></span>
+      Semantic index CC BY-SA 4.0 after ConceptNet.</p>
   </footer>
 </div>
+
+<nav class="tab-bar" id="tabs" aria-label="View"></nav>
 
 <script type="application/json" id="semantic-index">__INDEX__</script>
 
 <script>
+'use strict';
+
 const INDEX = JSON.parse(document.getElementById('semantic-index').textContent);
 const WORDS = INDEX.words.map((e) => e.w);
-const ENTRY = new Map(INDEX.words.map((e, i) => [e.w, e]));
+const ENTRY = INDEX.words;
 const AT = new Map(WORDS.map((w, i) => [w, i]));
 const RELATIONS = INDEX.relations;
 const TOPICS = INDEX.topics;
 
 document.getElementById('sha').textContent = INDEX.wordlist.sha256.slice(0, 8) + '…';
 
+const relLabel = (rel) => (RELATIONS[rel] ? RELATIONS[rel].label : rel);
+const relRank = (rel) => (RELATIONS[rel] ? RELATIONS[rel].rank : 99);
+
 /* ------------------------------------------------------------------ *
- * Relation families. Eighteen relations, six hues: the colour tells you
- * what kind of knowledge an edge is, the label tells you exactly which.
+ * Relation families
  * ------------------------------------------------------------------ */
 const FAMILY = {
   synonym: 'identity', similar: 'identity', derived: 'identity',
@@ -447,8 +678,16 @@ const FAMILY_LABEL = {
   link: 'loosely related',
   assoc: 'turns up together',
 };
-const SOURCE_NAME = ['', 'WordNet', 'ConceptNet', 'WordNet + ConceptNet',
-  'Numberbatch', 'WordNet + Numberbatch', 'ConceptNet + Numberbatch', 'all three'];
+const familyOf = (rel) => FAMILY[rel] || 'link';
+
+/* Reading an edge backwards reverses what it says. The index stores both
+   directions for most relations but not all, so the traversal graph
+   flips the label rather than claiming a wing has a bird as a part. */
+const INVERSE = { 'is-a': 'kind', kind: 'is-a', 'part-of': 'has-part', 'has-part': 'part-of' };
+
+const SOURCE_NAME = ['', 'WordNet', 'ConceptNet', 'WordNet and ConceptNet',
+  'Numberbatch', 'WordNet and Numberbatch', 'ConceptNet and Numberbatch',
+  'all three sources'];
 
 document.getElementById('legend').innerHTML = Object.entries(FAMILY_LABEL)
   .map(([fam, label]) =>
@@ -456,9 +695,171 @@ document.getElementById('legend').innerHTML = Object.entries(FAMILY_LABEL)
   .join('');
 
 /* ------------------------------------------------------------------ *
- * The letter-level engine. Not precomputed: a pass over 2048 short
- * strings is well under a millisecond, and the rules belong in one
- * place rather than half here and half in a build script.
+ * The traversal graph.
+ *
+ * The index is directed: it records "bird has as a part wing" and
+ * separately "wing is part of bird". Walking a tree or hunting a path
+ * needs to cross either way, so both directions are merged here once at
+ * load — 28k edges, a few milliseconds — with reverse-only edges
+ * relabelled by their inverse.
+ * ------------------------------------------------------------------ */
+const ADJ = WORDS.map(() => []);
+(function buildGraph() {
+  const seen = new Map();                       // "from,to" -> edge
+  const put = (from, to, rel, score, mask, stated) => {
+    const key = from + ',' + to;
+    const existing = seen.get(key);
+    if (existing) {
+      // A relation the index states outranks one inferred backwards.
+      if (stated && !existing.stated) { existing.rel = rel; existing.stated = true; }
+      if (score > existing.score) existing.score = score;
+      existing.mask |= mask;
+      return;
+    }
+    const edge = { to, rel, score, mask, stated };
+    seen.set(key, edge);
+    ADJ[from].push(edge);
+  };
+  ENTRY.forEach((entry, from) => {
+    for (const [to, rel, score, mask] of entry.n) {
+      put(from, to, rel, score, mask, true);
+      put(to, from, INVERSE[rel] || rel, score, mask, false);
+    }
+  });
+  for (const list of ADJ) list.sort((a, b) => b.score - a.score || a.to - b.to);
+})();
+
+const DEGREE = ADJ.map((list) => list.length);
+document.getElementById('graph-stats').textContent =
+  `${ADJ.reduce((n, l) => n + l.length, 0) / 2} undirected links, ` +
+  `${(DEGREE.reduce((a, b) => a + b, 0) / WORDS.length).toFixed(1)} per word.`;
+
+/* ------------------------------------------------------------------ *
+ * Graph intelligence — all of it running here, in the page
+ * ------------------------------------------------------------------ */
+
+/** A word's neighbours bundled by relation, strongest relation first. */
+function groupsFor(index, perGroup) {
+  const byRelation = new Map();
+  for (const edge of ADJ[index]) {
+    if (!byRelation.has(edge.rel)) byRelation.set(edge.rel, []);
+    byRelation.get(edge.rel).push(edge);
+  }
+  return [...byRelation.entries()]
+    .map(([rel, edges]) => ({
+      rel,
+      family: familyOf(rel),
+      label: relLabel(rel),
+      best: edges[0].score,
+      edges,
+      shown: edges.slice(0, perGroup),
+    }))
+    .sort((a, b) => b.best - a.best || relRank(a.rel) - relRank(b.rel));
+}
+
+/**
+ * The strongest chain of relations joining two words.
+ *
+ * Dijkstra over −log(score), so a route costs the product of its links
+ * rather than their count: three near-certain steps beat one lucky
+ * guess. The graph turns out to be small-world — 2047 of the 2048 words
+ * are mutually reachable, median distance three — so this nearly always
+ * answers, and answers instantly.
+ */
+function strongestPath(from, to) {
+  if (from === to) return [];
+  const cost = new Float64Array(WORDS.length).fill(Infinity);
+  const via = new Int32Array(WORDS.length).fill(-1);
+  const viaEdge = new Array(WORDS.length);
+  const done = new Uint8Array(WORDS.length);
+  cost[from] = 0;
+
+  // A binary heap, because a linear scan over 2048 nodes per pop is
+  // wasteful enough to be felt on a phone.
+  const heap = [[0, from]];
+  const push = (item) => {
+    heap.push(item);
+    let i = heap.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (heap[parent][0] <= heap[i][0]) break;
+      const swap = heap[parent]; heap[parent] = heap[i]; heap[i] = swap;
+      i = parent;
+    }
+  };
+  const pop = () => {
+    const top = heap[0];
+    const last = heap.pop();
+    if (heap.length) {
+      heap[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1, r = l + 1;
+        let small = i;
+        if (l < heap.length && heap[l][0] < heap[small][0]) small = l;
+        if (r < heap.length && heap[r][0] < heap[small][0]) small = r;
+        if (small === i) break;
+        const swap = heap[small]; heap[small] = heap[i]; heap[i] = swap;
+        i = small;
+      }
+    }
+    return top;
+  };
+
+  while (heap.length) {
+    const top = pop();
+    const node = top[1];
+    if (done[node]) continue;
+    done[node] = 1;
+    if (node === to) break;
+    for (const edge of ADJ[node]) {
+      const next = top[0] - Math.log(edge.score / 100);
+      if (next < cost[edge.to]) {
+        cost[edge.to] = next;
+        via[edge.to] = node;
+        viaEdge[edge.to] = edge;
+        push([next, edge.to]);
+      }
+    }
+  }
+  if (!isFinite(cost[to])) return null;
+
+  const chain = [];
+  for (let node = to; node !== from; node = via[node]) {
+    chain.push({ word: node, edge: viaEdge[node] });
+  }
+  return chain.reverse();
+}
+
+/**
+ * Words two steps out: strongly tied to several of this word's
+ * neighbours without being tied to the word itself. This is how a graph
+ * suggests "oven" for "bread" when no source ever wrote that edge down —
+ * the evidence is in the company they both keep.
+ */
+function twoStepsOut(index, limit) {
+  const direct = new Set([index]);
+  for (const edge of ADJ[index]) direct.add(edge.to);
+  const score = new Map();
+  for (const first of ADJ[index]) {
+    if (first.score < 30) continue;
+    for (const second of ADJ[first.to]) {
+      if (direct.has(second.to) || second.score < 30) continue;
+      const gain = (first.score / 100) * (second.score / 100);
+      score.set(second.to, (score.get(second.to) || 0) + gain);
+    }
+  }
+  return [...score.entries()]
+    .filter((entry) => entry[1] >= 0.5)
+    .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+    .slice(0, limit || 6)
+    .map((entry) => entry[0]);
+}
+
+/* ------------------------------------------------------------------ *
+ * The letter and sound engine. Deliberately not precomputed: a pass
+ * over 2048 short strings is well under a millisecond, and the rules
+ * belong in one place rather than half here and half in a build script.
  * ------------------------------------------------------------------ */
 const CLS = {
   a: 'A', e: 'A', i: 'A', o: 'A', u: 'A', y: 'A',
@@ -521,7 +922,6 @@ for (const w of WORDS) {
   SOUND_GROUPS.get(k).push(w);
 }
 
-/** Ranked search hits: which words the query could mean, and why. */
 function search(raw) {
   const q = raw.toLowerCase().replace(/[^a-z]/g, '');
   if (!q) return [];
@@ -538,7 +938,7 @@ function search(raw) {
     for (const w of WORDS) {
       if (seen.has(w)) continue;
       const d = editDistance(q, w, cap);
-      if (d <= cap) add(w, `${d} edit${d === 1 ? '' : 's'} away`, 2 + (d - 1));
+      if (d <= cap) add(w, d + ' edit' + (d === 1 ? '' : 's') + ' away', 2 + (d - 1));
     }
   }
   for (const w of (SOUND_GROUPS.get(soundKey(q)) || [])) add(w, 'sounds like', 3.5);
@@ -548,11 +948,9 @@ function search(raw) {
   return [...seen.values()].sort((a, b) => a.rank - b.rank || a.w.localeCompare(b.w));
 }
 
-/** The letter-level neighbours of one word, for the strip under the map. */
 function letterNeighbours(word) {
   const family = WORDS.filter((w) => w !== word && w.startsWith(word.slice(0, 3)));
-  const key = soundKey(word);
-  const sounds = (SOUND_GROUPS.get(key) || []).filter((w) => w !== word);
+  const sounds = (SOUND_GROUPS.get(soundKey(word)) || []).filter((w) => w !== word);
   const near = WORDS.filter((w) => w !== word && editDistance(word, w, 1) <= 1);
   const rhymes = word.length >= 4
     ? WORDS.filter((w) => w !== word && w.length >= 4 && w.slice(-3) === word.slice(-3))
@@ -562,202 +960,489 @@ function letterNeighbours(word) {
     ['sounds like', sounds],
     ['one edit away', near],
     ['rhymes with', rhymes],
-  ].filter(([, list]) => list.length);
+  ].filter((row) => row[1].length);
 }
 
 /* ------------------------------------------------------------------ *
- * View
+ * State
  * ------------------------------------------------------------------ */
 const bits = (i) => i.toString(2).padStart(11, '0').replace(/(\d{4})(\d{4})(\d{3})/, '$1 $2 $3');
 const el = (id) => document.getElementById(id);
-const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const esc = (s) => String(s).replace(/[&<>"]/g,
+  (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-const state = { word: 'bird', trail: ['bird'], query: '' };
+const narrow = window.matchMedia('(max-width: 700px)');
 
-/* Up to six spokes. Angles are chosen per count so the map fills the
-   frame rather than leaving a gap where a missing relation would be. */
-const SPOKE_ANGLES = {
-  1: [0],
-  2: [-32, 148],
-  3: [-90, 30, 150],
-  4: [-42, 42, 138, 222],
-  5: [-90, -20, 52, 128, 200],
-  6: [-90, -34, 34, 90, 146, 214],
+const state = {
+  word: AT.get('bird'),
+  view: 'map',
+  trail: [AT.get('bird')],
+  query: '',
+  /** Map: which spoke nodes are opened into a fan of their own. */
+  opened: new Set(),
+  /** Tree: which rows are unfolded, keyed by their path so the same word
+      can be open in one branch and shut in another. */
+  unfolded: new Set(),
+  depth: 2,
+  pathTo: '',
 };
-const MAX_SPOKES = 6;
-const PER_SPOKE = 4;
-const CHAR = 7.55;                    // monospace advance at 12.5px
 
-function groupsFor(word) {
-  const entry = ENTRY.get(word);
-  if (!entry) return [];
-  const byRelation = new Map();
-  for (const [target, relation, score, mask] of entry.n) {
-    if (!byRelation.has(relation)) byRelation.set(relation, []);
-    byRelation.get(relation).push({ word: WORDS[target], score, mask });
-  }
-  return [...byRelation.entries()]
-    .map(([relation, members]) => ({
-      relation,
-      family: FAMILY[relation] || 'link',
-      label: RELATIONS[relation].label,
-      best: members[0].score,
-      members: members.slice(0, PER_SPOKE),
-      total: members.length,
-    }))
-    // Strongest relation first, then the more specific of two equals.
-    .sort((a, b) => b.best - a.best || RELATIONS[a.relation].rank - RELATIONS[b.relation].rank)
-    .slice(0, MAX_SPOKES);
+const VIEWS = [
+  ['map', 'Map', 'M12 2v5m0 10v5M2 12h5m10 0h5M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
+  ['tree', 'Tree', 'M4 4v11a2 2 0 0 0 2 2h4M4 8h6M10 19h10M10 15h10M10 11h10'],
+  ['path', 'Path', 'M5 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm14 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 7h6a3 3 0 0 1 3 3v5'],
+];
+
+el('nav').innerHTML = VIEWS.map((v) =>
+  `<button data-view="${v[0]}">${v[1]}</button>`).join('');
+el('tabs').innerHTML = VIEWS.map((v) =>
+  `<button data-view="${v[0]}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+     ><path d="${v[2]}"/></svg>${v[1]}</button>`).join('');
+
+/* ------------------------------------------------------------------ *
+ * Map — the orbit, with any node openable into its own fan
+ * ------------------------------------------------------------------ */
+const SPOKE_ANGLES = {
+  1: [0], 2: [-32, 148], 3: [-90, 30, 150], 4: [-42, 42, 138, 222],
+  5: [-90, -20, 52, 128, 200], 6: [-90, -34, 34, 90, 146, 214],
+};
+
+/* A phone is portrait and a third the width, so it gets a portrait
+   frame, tighter rings and fewer spokes — not the desktop layout scaled
+   down until the words are unreadable. */
+function mapMetrics() {
+  return narrow.matches
+    ? { minW: 340, rx: 104, ry: 152, spokes: 4, per: 3,
+        font: 12.5, centre: 18, label: 9.4, cw: 7.55, pad: 9, pillH: 26, rowH: 29, hit: 16 }
+    : { minW: 560, rx: 176, ry: 126, spokes: 6, per: 4,
+        font: 12.5, centre: 21, label: 8.6, cw: 7.55, pad: 10, pillH: 23, rowH: 24, hit: 13 };
 }
 
-function renderOrbit() {
-  const word = state.word;
-  const svg = el('orbit');
-  const entry = ENTRY.get(word);
-  const groups = groupsFor(word);
-  const index = AT.get(word);
-  const parts = [];
+/* The frame is measured from what actually got drawn, not fixed in
+   advance: opening a node pushes its fan outward, and a map with two
+   spokes should not be framed as if it had six. */
+function bounds() {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  return {
+    add(x, y) {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    },
+    box(padding, minWidth) {
+      let width = maxX - minX + padding * 2;
+      let height = maxY - minY + padding * 2;
+      let x = minX - padding;
+      let y = minY - padding;
+      if (width < minWidth) { x -= (minWidth - width) / 2; width = minWidth; }
+      return [x, y, width, height].map((n) => n.toFixed(1)).join(' ');
+    },
+  };
+}
 
+function renderMap() {
+  const m = mapMetrics();
+  const index = state.word;
+  const word = WORDS[index];
+  const all = groupsFor(index, m.per);
+  const groups = all.slice(0, m.spokes);
+  const parts = [];
+  const frame = bounds();
+  const claimed = new Set([index]);
+  groups.forEach((g) => g.shown.forEach((e) => claimed.add(e.to)));
+
+  const halfW = Math.max(70, (word.length * m.centre * 0.62) / 2 + 24);
+  frame.add(-halfW, -31);
+  frame.add(halfW, 31);
   parts.push(`<g>
-    <rect x="-78" y="-32" width="156" height="64" rx="15"
+    <rect x="${-halfW}" y="-31" width="${halfW * 2}" height="62" rx="15"
       fill="var(--fam-identity-bg)" stroke="var(--fam-identity)" stroke-width="1.6"></rect>
-    <text class="orbit__center" x="0" y="-2" text-anchor="middle"
+    <text class="orbit__center" x="0" y="-2" text-anchor="middle" style="font-size:${m.centre}px"
       fill="var(--fam-identity)">${esc(word)}</text>
     <text x="0" y="17" text-anchor="middle" fill="var(--muted)"
       style="font-family:var(--mono);font-size:9.5px">#${String(index).padStart(4, '0')} · ${bits(index)}</text>
   </g>`);
 
   if (!groups.length) {
-    parts.push(`<text class="orbit__empty" x="0" y="-70" text-anchor="middle">
-      No semantic neighbours — see the letter matches below.</text>`);
-    svg.innerHTML = parts.join('');
-    return;
+    parts.push(`<text class="orbit__empty" x="0" y="-58" text-anchor="middle" style="font-size:12px"
+      >No semantic neighbours — see the letters below.</text>`);
+    frame.add(-150, -70);
+    frame.add(150, 40);
   }
 
-  const angles = SPOKE_ANGLES[groups.length];
+  const angles = SPOKE_ANGLES[groups.length] || [];
   groups.forEach((group, i) => {
     const rad = (angles[i] * Math.PI) / 180;
-    const cx = Math.cos(rad) * 172;
-    const cy = Math.sin(rad) * 124;
+    const cx = Math.cos(rad) * m.rx;
+    const cy = Math.sin(rad) * m.ry;
     const fam = group.family;
+    const spread = (group.shown.length - 1) * (m.rowH / 2);
 
-    parts.push(`<line x1="${Math.cos(rad) * 82}" y1="${Math.sin(rad) * 40}"
-      x2="${cx * 0.8}" y2="${cy * 0.8}" stroke="var(--fam-${fam})"
-      stroke-width="1.25" stroke-dasharray="3 3" opacity="0.6"></line>`);
+    parts.push(`<line x1="${(Math.cos(rad) * halfW * 0.95).toFixed(1)}"
+      y1="${(Math.sin(rad) * 38).toFixed(1)}"
+      x2="${(cx * 0.78).toFixed(1)}" y2="${(cy * 0.78).toFixed(1)}"
+      stroke="var(--fam-${fam})" stroke-width="1.25" stroke-dasharray="3 3" opacity="0.6"></line>`);
 
-    const spread = (group.members.length - 1) * 12;
-    parts.push(`<text class="orbit__label" x="${cx}" y="${cy - spread - 20}"
-      text-anchor="middle" fill="var(--fam-${fam})">${esc(group.label)}${
-        group.total > group.members.length ? ` +${group.total - group.members.length}` : ''
-      }</text>`);
+    const hidden = group.edges.length - group.shown.length;
+    const labelHalf = ((group.label.length + (hidden > 0 ? 4 : 0)) * m.label * 0.72) / 2;
+    frame.add(cx - labelHalf, cy - spread - 26);
+    frame.add(cx + labelHalf, cy - spread - 26);
+    parts.push(`<text class="orbit__label" x="${cx.toFixed(1)}" y="${(cy - spread - 19).toFixed(1)}"
+      text-anchor="middle" style="font-size:${m.label}px"
+      fill="var(--fam-${fam})">${esc(group.label)}${hidden > 0 ? ' +' + hidden : ''}</text>`);
 
-    group.members.forEach((member, k) => {
-      const y = cy - spread + k * 24;
-      const half = (member.word.length * CHAR) / 2 + 10;
-      // Score drives opacity: a 98 is a fact, a 26 is a hunch, and the
-      // map should not present them identically.
-      const solidity = 0.42 + 0.58 * (member.score / 100);
-      parts.push(`<g class="orbit__pill" tabindex="0" role="button"
-        data-word="${esc(member.word)}"
-        aria-label="${esc(member.word)}, ${esc(group.label)}, strength ${member.score}">
-        <title>${esc(member.word)} — ${esc(group.label)} — ${member.score}/100 — ${SOURCE_NAME[member.mask]}</title>
-        <rect x="${cx - half}" y="${y - 13}" width="${half * 2}" height="23" rx="11.5"
+    group.shown.forEach((edge, k) => {
+      const y = cy - spread + k * m.rowH;
+      const child = WORDS[edge.to];
+      const half = (child.length * m.cw) / 2 + m.pad;
+      const open = state.opened.has(edge.to);
+
+      /* Opening a node fans its own strongest neighbours out past it,
+         inside this spoke's sector, so the map never becomes a hairball.
+         One branch at a time is the point. */
+      if (open) {
+        const kids = ADJ[edge.to].filter((e) => !claimed.has(e.to)).slice(0, 3);
+        kids.forEach((kid, j) => {
+          claimed.add(kid.to);
+          const off = ((j - (kids.length - 1) / 2) * 15 * Math.PI) / 180;
+          /* Far enough out to clear the spoke's own caption, which sits
+             just above the group and would otherwise be written through
+             by the first child. */
+          const kx = Math.cos(rad + off) * m.rx * 2.05;
+          const ky = Math.sin(rad + off) * m.ry * 1.95;
+          const kidWord = WORDS[kid.to];
+          const kidHalf = (kidWord.length * m.cw * 0.9) / 2 + m.pad - 2;
+          const kidFam = familyOf(kid.rel);
+          frame.add(kx - kidHalf, ky - 11);
+          frame.add(kx + kidHalf, ky + 11);
+          parts.push(`<line x1="${cx.toFixed(1)}" y1="${y.toFixed(1)}"
+            x2="${kx.toFixed(1)}" y2="${ky.toFixed(1)}" stroke="var(--fam-${kidFam})"
+            stroke-width="1" stroke-dasharray="2 3" opacity="0.45"></line>
+          <g class="orbit__pill" tabindex="0" role="button" data-word="${esc(kidWord)}"
+             aria-label="${esc(kidWord)} — ${esc(relLabel(kid.rel))} ${esc(child)}">
+            <title>${esc(kidWord)} — ${esc(relLabel(kid.rel))} ${esc(child)} — ${kid.score}/100</title>
+            <rect x="${(kx - kidHalf).toFixed(1)}" y="${(ky - 11).toFixed(1)}"
+              width="${(kidHalf * 2).toFixed(1)}" height="22" rx="11"
+              fill="var(--surface)" stroke="var(--fam-${kidFam})" stroke-width="1"
+              stroke-dasharray="3 2"></rect>
+            <text class="orbit__word" x="${kx.toFixed(1)}" y="${(ky + 3.8).toFixed(1)}"
+              text-anchor="middle" style="font-size:${(m.font * 0.9).toFixed(1)}px"
+              fill="var(--fam-${kidFam})">${esc(kidWord)}</text>
+          </g>`);
+        });
+      }
+
+      const solidity = 0.42 + 0.58 * (edge.score / 100);
+      frame.add(cx - half, y - m.pillH / 2);
+      frame.add(cx + half + 10 + m.hit, y + m.pillH / 2);
+      parts.push(`<g class="orbit__pill" tabindex="0" role="button" data-word="${esc(child)}"
+        aria-label="${esc(child)}, ${esc(group.label)}, strength ${edge.score} of 100">
+        <title>${esc(child)} — ${esc(group.label)} — ${edge.score}/100 — ${SOURCE_NAME[edge.mask]}</title>
+        <rect x="${(cx - half).toFixed(1)}" y="${(y - m.pillH / 2).toFixed(1)}"
+          width="${(half * 2).toFixed(1)}" height="${m.pillH}" rx="${m.pillH / 2}"
           fill="var(--fam-${fam}-bg)" stroke="var(--fam-${fam})" stroke-width="1"
           opacity="${solidity.toFixed(2)}"></rect>
-        <text class="orbit__word" x="${cx}" y="${y + 3}" text-anchor="middle"
-          fill="var(--fam-${fam})">${esc(member.word)}</text>
+        <text class="orbit__word" x="${cx.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle"
+          style="font-size:${m.font}px" fill="var(--fam-${fam})">${esc(child)}</text>
+      </g>
+      <g class="orbit__more" tabindex="0" role="button" data-open="${edge.to}"
+         aria-pressed="${open}" aria-label="${open ? 'Close' : 'Open'} ${esc(child)}'s own links">
+        <title>${open ? 'Close' : 'Open'} ${esc(child)}'s own links</title>
+        <circle cx="${(cx + half + 10).toFixed(1)}" cy="${y.toFixed(1)}" r="${m.hit}"
+          fill="transparent"></circle>
+        <circle cx="${(cx + half + 10).toFixed(1)}" cy="${y.toFixed(1)}" r="9"
+          fill="var(--surface)" stroke="var(--fam-${fam})" stroke-width="1"></circle>
+        <text x="${(cx + half + 10).toFixed(1)}" y="${(y + 3.8).toFixed(1)}" text-anchor="middle"
+          style="font-size:12px" fill="var(--fam-${fam})">${open ? '−' : '+'}</text>
       </g>`);
     });
   });
 
-  svg.innerHTML = parts.join('');
+  const dropped = all.length - groups.length;
+  el('stage').innerHTML = `<div class="panel">
+    <div class="panel__bar">
+      <span class="panel__title">Map</span>
+      <span class="muted-line">${dropped > 0
+        ? groups.length + ' of ' + all.length + ' relations — Tree shows every one'
+        : 'tap + to open a word’s own links'}</span>
+    </div>
+    <div class="map"><svg class="orbit" viewBox="${frame.box(16, m.minW)}" role="img"
+      aria-label="Relation map for ${esc(word)}">${parts.join('')}</svg></div>
+  </div>`;
 }
 
+/* ------------------------------------------------------------------ *
+ * Tree — the same graph, as many levels down as you care to go
+ * ------------------------------------------------------------------ */
+const PER_LEVEL = [6, 4, 3, 3, 2];
+const MAX_ROWS = 400;
+
+/* Relations run both ways, so a word's neighbours always include the word
+   it hangs from — left in, every branch would open with a step straight
+   back where it came from ("parrot, a kind of bird" → "bird, a kind of
+   parrot's category"). Ancestors are dropped, not marked: a tree that
+   walks back up itself is not deeper, only longer. */
+const childrenOf = (index, depth, ancestors) =>
+  ADJ[index]
+    .filter((edge) => !ancestors.has(edge.to))
+    .slice(0, PER_LEVEL[Math.min(depth, PER_LEVEL.length - 1)]);
+
+function renderTree() {
+  const rows = [];
+  let truncated = false;
+
+  const walk = (index, depth, path, ancestors, edge) => {
+    if (rows.length >= MAX_ROWS) { truncated = true; return; }
+    const key = path + '/' + index;
+    const next = new Set(ancestors).add(index);
+    const children = childrenOf(index, depth, next);
+    const open = state.unfolded.has(key) && children.length > 0;
+    rows.push({ index, depth, key, edge, open, leaf: children.length === 0 });
+    if (!open) return;
+    for (const child of children) walk(child.to, depth + 1, key, next, child);
+  };
+  walk(state.word, 0, '', new Set(), null);
+
+  const body = rows.map((row) => {
+    const rel = row.edge ? row.edge.rel : null;
+    const fam = rel ? familyOf(rel) : 'identity';
+    const label = rel ? relLabel(rel) : 'you are here';
+    const score = row.edge ? row.edge.score : 100;
+    const word = WORDS[row.index];
+    return `<div class="tree__row${row.depth === 0 ? ' tree__row--current' : ''}"
+      style="padding-left:${(0.4 + row.depth * 0.95).toFixed(2)}rem">
+      <span class="tree__rail" style="background:var(--fam-${fam})"></span>
+      <button class="tree__caret" data-fold="${esc(row.key)}" data-leaf="${row.leaf}"
+        aria-expanded="${row.open}"
+        aria-label="${row.open ? 'Collapse' : 'Expand'} ${esc(word)}">${row.open ? '▾' : '▸'}</button>
+      <button class="tree__word" data-word="${esc(word)}">${esc(word)}</button>
+      <span class="tree__rel" style="color:var(--fam-${fam});background:var(--fam-${fam}-bg)"
+        >${esc(label)}</span>
+      <span class="tree__meter" title="strength ${score} of 100"
+        ><i style="width:${score}%;background:var(--fam-${fam})"></i></span>
+    </div>`;
+  }).join('');
+
+  el('stage').innerHTML = `<div class="panel">
+    <div class="panel__bar">
+      <span class="panel__title">Tree</span>
+      <span class="chipset">
+        ${[1, 2, 3, 4].map((d) => `<button data-depth="${d}"
+          aria-pressed="${state.depth === d}">${d} deep</button>`).join('')}
+      </span>
+    </div>
+    <div class="tree">${body}</div>
+    ${truncated ? `<p class="tree__note">Stopped at ${MAX_ROWS} rows — fold a branch
+      or re-centre to see further.</p>` : ''}
+    <p class="tree__note">Every branch keeps walking outward — a word never
+      reappears inside its own subtree. Tap a word to make it the centre.</p>
+  </div>`;
+  el('stage').querySelector('.tree').scrollTop = 0;
+}
+
+/** Unfold every branch to a given depth, from the current word. */
+function unfoldTo(depth) {
+  state.depth = depth;
+  state.unfolded = new Set();
+  const walk = (index, level, path, ancestors) => {
+    if (level >= depth) return;
+    const key = path + '/' + index;
+    state.unfolded.add(key);
+    const next = new Set(ancestors).add(index);
+    for (const edge of childrenOf(index, level, next)) walk(edge.to, level + 1, key, next);
+  };
+  walk(state.word, 0, '', new Set());
+}
+
+/* ------------------------------------------------------------------ *
+ * Path — how any two of the 2048 are connected
+ * ------------------------------------------------------------------ */
+function renderPath() {
+  const from = state.word;
+  const target = state.pathTo.toLowerCase().replace(/[^a-z]/g, '');
+  let body;
+
+  if (!target) {
+    const suggestion = WORDS[(from * 7919 + 101) % WORDS.length];
+    body = `<p class="path__summary">Name a second word and the app finds the
+      strongest chain of relations joining the two. Try
+      <button class="pill" data-suggest="${esc(suggestion)}">${esc(suggestion)}</button>.</p>`;
+  } else if (!AT.has(target)) {
+    const near = search(target)[0];
+    body = `<p class="path__summary">${esc(target)} is not in the list.${near
+      ? ` Did you mean <button class="pill" data-suggest="${esc(near.w)}">${esc(near.w)}</button>?`
+      : ''}</p>`;
+  } else if (AT.get(target) === from) {
+    body = '<p class="path__summary">That is the word you are standing on.</p>';
+  } else {
+    const chain = strongestPath(from, AT.get(target));
+    if (!chain) {
+      body = `<p class="path__summary">Nothing reaches ${esc(target)} — it has no
+        semantic links at all.</p>`;
+    } else {
+      let strength = 1;
+      for (const step of chain) strength *= step.edge.score / 100;
+      const nodes = [`<button class="path__node" data-word="${esc(WORDS[from])}"
+        ><b>${esc(WORDS[from])}</b></button>`];
+      for (const step of chain) {
+        const fam = familyOf(step.edge.rel);
+        nodes.push(`<div class="path__link">
+          <span class="tree__rel" style="color:var(--fam-${fam});background:var(--fam-${fam}-bg)"
+            >${esc(relLabel(step.edge.rel))}</span>
+          <span>${step.edge.score}/100 · ${SOURCE_NAME[step.edge.mask]}</span>
+        </div>
+        <button class="path__node" data-word="${esc(WORDS[step.word])}"
+          ><b>${esc(WORDS[step.word])}</b></button>`);
+      }
+      body = `<div class="path__chain">${nodes.join('')}</div>
+        <p class="path__summary">${chain.length} step${chain.length === 1 ? '' : 's'},
+        combined strength ${(strength * 100).toFixed(1)} of 100. Dijkstra over
+        −log(strength), so a longer chain of certainties beats a short guess.</p>`;
+    }
+  }
+
+  el('stage').innerHTML = `<div class="panel">
+    <div class="panel__bar"><span class="panel__title">Path</span></div>
+    <div class="path">
+      <form class="path__form" id="path-form">
+        <span class="muted-line" style="font-family:var(--mono)">${esc(WORDS[from])}</span>
+        <span class="muted-line" aria-hidden="true">→</span>
+        <input id="path-to" type="search" value="${esc(state.pathTo)}" placeholder="second word"
+          spellcheck="false" autocomplete="off" enterkeyhint="go" aria-label="Second word">
+        <button class="path__go" type="submit">Find</button>
+      </form>
+      ${body}
+    </div>
+  </div>`;
+
+  el('path-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    state.pathTo = el('path-to').value;
+    renderPath();
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Detail card, letters strip, trail, search hits
+ * ------------------------------------------------------------------ */
+const POS = { n: 'noun', v: 'verb', a: 'adjective', s: 'adjective', r: 'adverb' };
+
 function renderCard() {
-  const word = state.word;
-  const entry = ENTRY.get(word);
-  const index = AT.get(word);
+  const index = state.word;
+  const entry = ENTRY[index];
+  const word = WORDS[index];
   const topic = entry.t !== undefined ? TOPICS[entry.t] : null;
-  const degree = entry.n.length;
+  const alsoSee = twoStepsOut(index);
 
   el('card').innerHTML = `
     <div class="card__word">${esc(word)}</div>
-    ${entry.g ? `<p class="card__gloss">${esc(entry.g)}</p>` : `
-      <p class="card__gloss" style="color:var(--muted)">No dictionary entry — this word
-      postdates every source corpus.</p>`}
+    ${entry.g
+      ? `<p class="card__gloss">${esc(entry.g)}</p>`
+      : `<p class="card__gloss" style="color:var(--muted)">No dictionary entry —
+         this word postdates every source corpus.</p>`}
     <dl class="card__facts">
       <dt>index</dt><dd>${index} of 2047</dd>
       <dt>11 bits</dt><dd>${bits(index)}</dd>
       <dt>hex</dt><dd>0x${index.toString(16).toUpperCase().padStart(3, '0')}</dd>
       <dt>prefix</dt><dd>${esc(word.slice(0, 4))}</dd>
-      ${entry.p ? `<dt>part</dt><dd>${{ n: 'noun', v: 'verb', a: 'adjective', s: 'adjective', r: 'adverb' }[entry.p] || entry.p}</dd>` : ''}
-      <dt>links</dt><dd>${degree}</dd>
+      ${entry.p ? `<dt>part</dt><dd>${POS[entry.p] || entry.p}</dd>` : ''}
+      <dt>links</dt><dd>${DEGREE[index]}</dd>
     </dl>
-    ${topic ? `<button class="card__topic" data-topic="${topic.id}">
-      topic · ${esc(topic.label)} · ${topic.size}</button>` : ''}
-    <p class="card__gloss" style="color:var(--muted);font-size:0.74rem;margin:0">
-      Those four letters identify this word uniquely — no other entry in the
-      list begins <span style="font-family:var(--mono)">${esc(word.slice(0, 4))}</span>.
+    ${topic ? `<button class="card__topic" data-topic="${topic.id}">topic ·
+      ${esc(topic.label)} · ${topic.size}</button>` : ''}
+    ${alsoSee.length ? `<div>
+      <div class="card__sub">Two steps out</div>
+      <div class="pill-row" style="margin-top:0.35rem">${alsoSee
+        .map((i) => `<button class="pill" data-word="${esc(WORDS[i])}">${esc(WORDS[i])}</button>`)
+        .join('')}</div>
+      <p class="card__gloss" style="color:var(--muted);font-size:0.72rem;margin:0.35rem 0 0">
+        Not linked to ${esc(word)} directly — reached through the company they share.</p>
+    </div>` : ''}
+    <p class="card__gloss" style="color:var(--muted);font-size:0.72rem;margin:0">
+      No other word in the list begins
+      <span style="font-family:var(--mono)">${esc(word.slice(0, 4))}</span>.
     </p>`;
 }
 
 function renderLetters() {
-  const rows = letterNeighbours(state.word);
+  const rows = letterNeighbours(WORDS[state.word]);
   el('letters').innerHTML = `
-    <div class="letters__head">Letters and sound — computed live, not from the index</div>
-    ${rows.length ? rows.map(([kind, list]) => `
+    <div class="card__sub">Letters and sound — computed live, not from the index</div>
+    ${rows.length ? rows.map((row) => `
       <div class="letters__row">
-        <span class="letters__kind">${kind}</span>
-        <span class="letters__words">${list.slice(0, 22)
-          .map((w) => `<button data-word="${esc(w)}">${esc(w)}</button>`).join('')}${
-          list.length > 22 ? `<span class="letters__kind">+${list.length - 22}</span>` : ''
-        }</span>
+        <span class="letters__kind">${row[0]}</span>
+        <span class="pill-row">${row[1].slice(0, 18)
+          .map((w) => `<button class="pill" data-word="${esc(w)}">${esc(w)}</button>`).join('')}${
+          row[1].length > 18 ? `<span class="letters__kind">+${row[1].length - 18}</span>` : ''}</span>
       </div>`).join('')
       : '<div class="letters__kind">Nothing in the list looks or sounds like this one.</div>'}`;
 }
 
 function renderTrail() {
   el('trail').innerHTML = '<span class="trail__label">Trail</span>' +
-    state.trail.map((w, i) =>
-      `${i ? '<span aria-hidden="true">›</span>' : ''}<button data-trail="${i}">${esc(w)}</button>`
-    ).join('');
+    state.trail.map((index, i) =>
+      (i ? '<span aria-hidden="true">›</span>' : '') +
+      `<button data-trail="${i}">${esc(WORDS[index])}</button>`).join('');
+  el('trail').scrollLeft = el('trail').scrollWidth;
 }
 
 function renderHits() {
-  const hits = search(state.query);
-  el('count').textContent = state.query ? `${hits.length} / 2048` : '2048 words';
   if (!state.query) {
-    el('hits').innerHTML = '<span class="hits__empty">Type to search, or click any word on the map to travel to it.</span>';
+    el('count').textContent = '2048 words';
+    el('hits').innerHTML = '';
     return;
   }
+  const hits = search(state.query);
+  el('count').textContent = hits.length + ' / 2048';
   if (!hits.length) {
-    el('hits').innerHTML = '<span class="hits__empty">Nothing matches. Try fewer letters.</span>';
+    el('hits').innerHTML = '<span class="muted-line">Nothing matches. Try fewer letters.</span>';
     return;
   }
   const q = state.query.toLowerCase().replace(/[^a-z]/g, '');
-  el('hits').innerHTML = hits.slice(0, 24).map((hit) => {
+  const limit = narrow.matches ? 12 : 20;
+  el('hits').innerHTML = hits.slice(0, limit).map((hit) => {
     const at = hit.w.indexOf(q);
     const shown = at < 0 ? esc(hit.w)
       : esc(hit.w.slice(0, at)) + '<mark>' + esc(hit.w.slice(at, at + q.length)) +
         '</mark>' + esc(hit.w.slice(at + q.length));
     return `<button class="hit" data-word="${esc(hit.w)}">${shown}<em>${hit.why}</em></button>`;
-  }).join('') + (hits.length > 24
-    ? `<span class="hits__empty">+${hits.length - 24} more</span>` : '');
+  }).join('') + (hits.length > limit
+    ? `<span class="muted-line">+${hits.length - limit} more</span>` : '');
 }
 
-function go(word, { fromTrail = false } = {}) {
-  if (!ENTRY.has(word) || word === state.word) return;
-  state.word = word;
-  if (!fromTrail) {
-    state.trail.push(word);
-    if (state.trail.length > 8) state.trail.shift();
+/* ------------------------------------------------------------------ *
+ * Wiring
+ * ------------------------------------------------------------------ */
+function setView(view) {
+  state.view = view;
+  for (const button of document.querySelectorAll('[data-view]')) {
+    button.setAttribute('aria-current', String(button.dataset.view === view));
+  }
+  renderStage();
+}
+
+function renderStage() {
+  if (state.view === 'map') renderMap();
+  else if (state.view === 'tree') renderTree();
+  else renderPath();
+}
+
+function go(index, options) {
+  if (index === state.word) return;
+  state.word = index;
+  state.opened = new Set();
+  unfoldTo(state.depth);
+  if (!(options && options.fromTrail)) {
+    state.trail.push(index);
+    if (state.trail.length > 12) state.trail.shift();
   }
   render();
-  el('orbit').closest('.stage').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 function render() {
-  renderOrbit();
+  renderStage();
   renderCard();
   renderLetters();
   renderTrail();
@@ -765,32 +1450,57 @@ function render() {
 }
 
 document.addEventListener('click', (event) => {
-  const word = event.target.closest('[data-word]');
-  if (word) { go(word.dataset.word); return; }
+  const target = event.target;
 
-  const step = event.target.closest('[data-trail]');
-  if (step) {
-    const i = +step.dataset.trail;
-    state.trail = state.trail.slice(0, i + 1);
-    go(state.trail[i], { fromTrail: true });
-    state.word = state.trail[i];
-    render();
+  const view = target.closest('[data-view]');
+  if (view) { setView(view.dataset.view); return; }
+
+  const open = target.closest('[data-open]');
+  if (open) {
+    const id = +open.dataset.open;
+    if (state.opened.has(id)) state.opened.delete(id); else state.opened.add(id);
+    renderMap();
     return;
   }
 
-  const topic = event.target.closest('[data-topic]');
-  if (topic) {
-    // Jump to the topic's most central word, which is also its name.
-    go(TOPICS[+topic.dataset.topic].label);
+  const fold = target.closest('[data-fold]');
+  if (fold) {
+    const key = fold.dataset.fold;
+    if (state.unfolded.has(key)) state.unfolded.delete(key); else state.unfolded.add(key);
+    renderTree();
+    return;
   }
+
+  const depth = target.closest('[data-depth]');
+  if (depth) { unfoldTo(+depth.dataset.depth); renderTree(); return; }
+
+  const suggest = target.closest('[data-suggest]');
+  if (suggest) { state.pathTo = suggest.dataset.suggest; renderPath(); return; }
+
+  const step = target.closest('[data-trail]');
+  if (step) {
+    const i = +step.dataset.trail;
+    const to = state.trail[i];
+    state.trail = state.trail.slice(0, i + 1);
+    if (to === state.word) renderTrail(); else go(to, { fromTrail: true });
+    return;
+  }
+
+  const topic = target.closest('[data-topic]');
+  if (topic) { go(AT.get(TOPICS[+topic.dataset.topic].label)); return; }
+
+  const word = target.closest('[data-word]');
+  if (word && AT.has(word.dataset.word)) go(AT.get(word.dataset.word));
 });
 
-/* The pills are SVG groups, so they need their own keyboard handling to
-   behave like the buttons they claim to be. */
+/* SVG groups are not buttons, so they need their own key handling to
+   behave like the controls they claim to be. */
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Enter' && event.key !== ' ') return;
-  const pill = event.target.closest && event.target.closest('.orbit__pill');
-  if (pill) { event.preventDefault(); go(pill.dataset.word); }
+  const hit = event.target.closest && event.target.closest('.orbit__pill, .orbit__more');
+  if (!hit) return;
+  event.preventDefault();
+  hit.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 });
 
 el('q').addEventListener('input', (event) => {
@@ -800,9 +1510,19 @@ el('q').addEventListener('input', (event) => {
 el('q').addEventListener('keydown', (event) => {
   if (event.key !== 'Enter') return;
   const first = search(state.query)[0];
-  if (first) { go(first.w); event.target.select(); }
+  if (first) { go(AT.get(first.w)); event.target.blur(); }
+});
+
+/* The map is laid out for the frame it is in, so crossing the breakpoint
+   — a rotation, a resized window — needs a fresh layout, not a scaled
+   old one. */
+narrow.addEventListener('change', () => {
+  if (state.view === 'map') renderMap();
+  renderHits();
 });
 
 el('version').textContent = '__VERSION__';
+unfoldTo(state.depth);
+setView(narrow.matches ? 'tree' : 'map');
 render();
 </script>
