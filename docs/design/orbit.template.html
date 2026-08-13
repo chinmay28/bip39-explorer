@@ -307,6 +307,20 @@ button { font: inherit; }
   color: var(--primary-ink);
   font-weight: 600;
 }
+/* The toggle sits beside the depth chips but is not one of them, so its
+   "on" state is outlined rather than filled — otherwise it reads as a
+   fifth depth. */
+.chipset .toggle { margin-left: 0.4rem; }
+.chipset .toggle[aria-pressed="true"] {
+  /* --fam-identity, not --primary-ink: the ink is a dark teal that
+     disappears on the dark surface, and this token is already the
+     theme-correct pair of that hue. */
+  background: var(--surface);
+  border-color: var(--fam-identity);
+  color: var(--fam-identity);
+  font-weight: 600;
+}
+
 
 /* ---------------- map ---------------- */
 .map { padding: 0.4rem; }
@@ -738,6 +752,35 @@ document.getElementById('graph-stats').textContent =
  * Graph intelligence — all of it running here, in the page
  * ------------------------------------------------------------------ */
 
+/* Strong neighbours of a word, cached. Used to ask how much a candidate
+   still belongs to the subject we started from. */
+const NEAR_CACHE = new Map();
+function strongNeighbours(index) {
+  let set = NEAR_CACHE.get(index);
+  if (!set) {
+    set = new Set();
+    for (const edge of ADJ[index]) if (edge.score >= 30) set.add(edge.to);
+    NEAR_CACHE.set(index, set);
+  }
+  return set;
+}
+
+/**
+ * How much a candidate still belongs to the world of the word we set
+ * out from, measured as neighbours shared with it.
+ *
+ * Without this, every hop optimises locally and a branch drifts:
+ * bird → pigeon → squirrel is two strong edges and a change of subject.
+ * The first two levels are left alone — a word's immediate neighbours
+ * should be reported honestly, strongest first — and only deeper hops
+ * are asked to stay on topic.
+ */
+function coherence(candidate, rootSet) {
+  let shared = 0;
+  for (const edge of ADJ[candidate]) if (rootSet.has(edge.to)) shared++;
+  return 1 + 0.5 * Math.min(shared, 6) / 6;
+}
+
 /** A word's neighbours bundled by relation, strongest relation first. */
 function groupsFor(index, perGroup) {
   const byRelation = new Map();
@@ -984,6 +1027,8 @@ const state = {
       can be open in one branch and shut in another. */
   unfolded: new Set(),
   depth: 2,
+  /** Keep deep branches in the starting word's world (see coherence). */
+  coherent: true,
   pathTo: '',
 };
 
@@ -1053,6 +1098,7 @@ function renderMap() {
   const claimed = new Set([index]);
   groups.forEach((g) => g.shown.forEach((e) => claimed.add(e.to)));
 
+  const rootSet = strongNeighbours(index);
   const halfW = Math.max(70, (word.length * m.centre * 0.62) / 2 + 24);
   frame.add(-halfW, -31);
   frame.add(halfW, 31);
@@ -1103,7 +1149,7 @@ function renderMap() {
          inside this spoke's sector, so the map never becomes a hairball.
          One branch at a time is the point. */
       if (open) {
-        const kids = ADJ[edge.to].filter((e) => !claimed.has(e.to)).slice(0, 3);
+        const kids = childrenOf(edge.to, 2, claimed, state.coherent ? rootSet : null).slice(0, 3);
         kids.forEach((kid, j) => {
           claimed.add(kid.to);
           const off = ((j - (kids.length - 1) / 2) * 15 * Math.PI) / 180;
@@ -1184,20 +1230,27 @@ const MAX_ROWS = 400;
    back where it came from ("parrot, a kind of bird" → "bird, a kind of
    parrot's category"). Ancestors are dropped, not marked: a tree that
    walks back up itself is not deeper, only longer. */
-const childrenOf = (index, depth, ancestors) =>
-  ADJ[index]
-    .filter((edge) => !ancestors.has(edge.to))
-    .slice(0, PER_LEVEL[Math.min(depth, PER_LEVEL.length - 1)]);
+function childrenOf(index, depth, ancestors, rootSet) {
+  const limit = PER_LEVEL[Math.min(depth, PER_LEVEL.length - 1)];
+  const candidates = ADJ[index].filter((edge) => !ancestors.has(edge.to));
+  if (depth < 2 || !rootSet) return candidates.slice(0, limit);
+  return candidates
+    .map((edge) => ({ edge, rank: (edge.score / 100) * coherence(edge.to, rootSet) }))
+    .sort((a, b) => b.rank - a.rank || a.edge.to - b.edge.to)
+    .slice(0, limit)
+    .map((scored) => scored.edge);
+}
 
 function renderTree() {
   const rows = [];
   let truncated = false;
+  const rootSet = state.coherent ? strongNeighbours(state.word) : null;
 
   const walk = (index, depth, path, ancestors, edge) => {
     if (rows.length >= MAX_ROWS) { truncated = true; return; }
     const key = path + '/' + index;
     const next = new Set(ancestors).add(index);
-    const children = childrenOf(index, depth, next);
+    const children = childrenOf(index, depth, next, rootSet);
     const open = state.unfolded.has(key) && children.length > 0;
     rows.push({ index, depth, key, edge, open, leaf: children.length === 0 });
     if (!open) return;
@@ -1231,13 +1284,21 @@ function renderTree() {
       <span class="chipset">
         ${[1, 2, 3, 4].map((d) => `<button data-depth="${d}"
           aria-pressed="${state.depth === d}">${d} deep</button>`).join('')}
+        <button class="toggle" data-coherent="1" aria-pressed="${state.coherent}"
+          title="Rank levels three and deeper by how well they stay in ${esc(WORDS[state.word])}'s world"
+          >stay on topic</button>
       </span>
     </div>
     <div class="tree">${body}</div>
     ${truncated ? `<p class="tree__note">Stopped at ${MAX_ROWS} rows — fold a branch
       or re-centre to see further.</p>` : ''}
     <p class="tree__note">Every branch keeps walking outward — a word never
-      reappears inside its own subtree. Tap a word to make it the centre.</p>
+      reappears inside its own subtree. ${state.coherent
+        ? `From the third level down, children are ranked by how much they still
+           share with <b>${esc(WORDS[state.word])}</b>, so a branch does not
+           quietly change the subject.`
+        : 'Every level is ranked by raw link strength, so deep branches drift.'}
+      Tap a word to make it the centre.</p>
   </div>`;
   el('stage').querySelector('.tree').scrollTop = 0;
 }
@@ -1246,12 +1307,13 @@ function renderTree() {
 function unfoldTo(depth) {
   state.depth = depth;
   state.unfolded = new Set();
+  const rootSet = state.coherent ? strongNeighbours(state.word) : null;
   const walk = (index, level, path, ancestors) => {
     if (level >= depth) return;
     const key = path + '/' + index;
     state.unfolded.add(key);
     const next = new Set(ancestors).add(index);
-    for (const edge of childrenOf(index, level, next)) walk(edge.to, level + 1, key, next);
+    for (const edge of childrenOf(index, level, next, rootSet)) walk(edge.to, level + 1, key, next);
   };
   walk(state.word, 0, '', new Set());
 }
@@ -1473,6 +1535,13 @@ document.addEventListener('click', (event) => {
 
   const depth = target.closest('[data-depth]');
   if (depth) { unfoldTo(+depth.dataset.depth); renderTree(); return; }
+
+  if (target.closest('[data-coherent]')) {
+    state.coherent = !state.coherent;
+    unfoldTo(state.depth);
+    renderTree();
+    return;
+  }
 
   const suggest = target.closest('[data-suggest]');
   if (suggest) { state.pathTo = suggest.dataset.suggest; renderPath(); return; }

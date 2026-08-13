@@ -19,7 +19,10 @@ to the next one:
   you can follow one branch two or three steps without losing the centre.
 - **Tree** — the same graph unrolled as far down as you like, 1 to 4 levels,
   every branch foldable. Ancestors are pruned from each branch, so a subtree
-  always walks outward rather than doubling back on itself.
+  always walks outward rather than doubling back on itself, and from the third
+  level down children are ranked by how much they still share with the word you
+  started from. **Stay on topic** toggles that off if you want to see raw link
+  strength drift instead.
 - **Path** — name any second word and the app finds the strongest chain of
   relations joining the two. `bird → sea → ocean`, with each link's relation,
   strength and sources shown.
@@ -87,7 +90,8 @@ the page, from the graph, with no network and no server:
 | | |
 |---|---|
 | **Both directions** | The index is directed; the app merges it into an undirected graph at load — 16,425 links, 16 per word — relabelling reverse edges by their inverse so a wing is *part of* a bird rather than having one. |
-| **Trees to any depth** | Breadth-first from the current word, pruning ancestors so branches keep going outward. |
+| **Trees to any depth** | Depth-first from the current word, pruning ancestors so branches keep going outward. |
+| **Branches that stay on subject** | Every hop optimising locally makes a branch drift — `bird → pigeon → squirrel` is two strong edges and a change of subject. From the third level down, candidates are re-ranked by neighbours shared with the root, which turns `animal → female, head, joy` into `animal → rabbit, zoo, cat`. The first two levels are left honest, strongest first. |
 | **Strongest path** | Dijkstra over −log(strength), so a route costs the *product* of its links, not their count: three near-certainties beat one lucky guess. The graph turns out to be small-world — 2047 of the 2048 words are mutually reachable, median distance three. |
 | **Two steps out** | Words tied to several of your word's neighbours but not to your word. It suggests `pilot` for `bird` — nobody wrote that edge down; the evidence is in the company they share. |
 | **Letters and sound** | Prefix, substring, subsequence, Damerau–Levenshtein and a phonetic key, over all 2048 words on every keystroke. |
