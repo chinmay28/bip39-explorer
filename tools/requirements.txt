@@ -1,0 +1,4 @@
+# Semantic index generator — see tools/README.md
+nltk~=3.10        # WordNet access
+numpy~=2.4        # all-pairs cosine over the embedding table
+networkx~=3.6     # Louvain community detection

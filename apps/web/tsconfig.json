@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": [
+      "node",
+      "vitest/globals",
+      "vite/client",
+      "vite-plugin-pwa/client"
+    ],
+    "noEmit": true,
+    "paths": {
+      "@data/*": [
+        "../../data/*"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "build-version.ts"
+  ]
+}

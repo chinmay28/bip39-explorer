@@ -1,0 +1,12 @@
+node_modules/
+dist/
+apps/*/dist/
+server/bin/
+
+# Staged by scripts/embed-client.mjs at build time; the placeholder README is
+# the only part of this directory that belongs in git.
+server/cmd/bip39-explorer/webdist/*
+!server/cmd/bip39-explorer/webdist/README.txt
+
+*.local
+.DS_Store
