@@ -1,0 +1,808 @@
+<title>BIP39 Orbit</title>
+
+<style>
+/* ------------------------------------------------------------------ *
+ * Tokens — CountRoster's palette (apps/web/src/styles.css) verbatim,
+ * plus the six relation-family hues this view needs. Defined on bare
+ * :root for light, then redefined for both dark states.
+ * ------------------------------------------------------------------ */
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --sunk: #f1f3f2;
+  --text: #1a1a1a;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --primary: #4ecdc4;
+  --primary-ink: #06403b;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
+
+  /* Relation families. Hue says what *kind* of knowledge an edge is;
+     the label on the spoke says which relation exactly. Eighteen
+     relations would need eighteen indistinguishable colours.
+     "assoc" is separate from "link" on purpose: an asserted "related to"
+     and a pair the embeddings merely observed keeping company are
+     different sorts of claim and should not share a colour. */
+  --fam-identity: #0d8579;
+  --fam-identity-bg: #dcf2f0;
+  --fam-hierarchy: #4a4ec6;
+  --fam-hierarchy-bg: #e4e5fb;
+  --fam-part: #7a3cc4;
+  --fam-part-bg: #efe4fb;
+  --fam-use: #97620a;
+  --fam-use-bg: #fbefd6;
+  --fam-contrast: #b32d5e;
+  --fam-contrast-bg: #fbe1ea;
+  --fam-link: #17784a;
+  --fam-link-bg: #dcf1e6;
+  --fam-assoc: #3f6f96;
+  --fam-assoc-bg: #e0ecf6;
+
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #18181b;
+    --surface: #232327;
+    --sunk: #1f1f23;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --border: #3f3f46;
+    --fam-identity: #5fd8ce;
+    --fam-identity-bg: #0d2c2a;
+    --fam-hierarchy: #9ba0f7;
+    --fam-hierarchy-bg: #1c1e3d;
+    --fam-part: #c497f3;
+    --fam-part-bg: #2a1c3c;
+    --fam-use: #ecb552;
+    --fam-use-bg: #33260c;
+    --fam-contrast: #f08bb0;
+    --fam-contrast-bg: #3a1526;
+    --fam-link: #62cf95;
+    --fam-link-bg: #0f2c1e;
+    --fam-assoc: #8ec2e8;
+    --fam-assoc-bg: #12283a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #18181b;
+  --surface: #232327;
+  --sunk: #1f1f23;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --border: #3f3f46;
+  --fam-identity: #5fd8ce;
+  --fam-identity-bg: #0d2c2a;
+  --fam-hierarchy: #9ba0f7;
+  --fam-hierarchy-bg: #1c1e3d;
+  --fam-part: #c497f3;
+  --fam-part-bg: #2a1c3c;
+  --fam-use: #ecb552;
+  --fam-use-bg: #33260c;
+  --fam-contrast: #f08bb0;
+  --fam-contrast-bg: #3a1526;
+  --fam-link: #62cf95;
+  --fam-link-bg: #0f2c1e;
+  --fam-assoc: #8ec2e8;
+  --fam-assoc-bg: #12283a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+
+/* ---------------- header: CountRoster's brand lockup ---------------- */
+.app__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px);
+}
+.brand { display: inline-flex; align-items: flex-start; gap: 0.4rem; }
+.brand__logo { width: 1.6rem; height: 1.6rem; border-radius: 0.35rem; display: block; flex: none; }
+.brand__text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand__name { font-family: var(--mono); font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
+.brand__version {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.app__note { font-size: 0.72rem; color: var(--muted); text-align: right; max-width: 22ch; }
+
+/* ---------------- search ---------------- */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  box-shadow: var(--shadow);
+  margin: 1.25rem 0 0.6rem;
+}
+.search svg { width: 1.1rem; height: 1.1rem; color: var(--muted); flex: none; }
+.search input {
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  width: 100%;
+  outline: none;
+}
+.search__count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  color: var(--muted);
+  flex: none;
+  white-space: nowrap;
+}
+
+.hits { display: flex; flex-wrap: wrap; gap: 0.3rem; min-height: 1.9rem; }
+.hit {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.hit:hover { border-color: var(--primary); }
+.hit:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.hit em { font-style: normal; color: var(--muted); font-size: 0.72rem; margin-left: 0.3rem; }
+.hit mark {
+  background: color-mix(in srgb, var(--primary) 40%, transparent);
+  color: inherit;
+  border-radius: 3px;
+}
+.hits__empty { font-size: 0.82rem; color: var(--muted); padding: 0.25rem 0; }
+
+/* ---------------- trail ---------------- */
+.trail {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--muted);
+  margin: 0.9rem 0 0;
+  min-height: 1.6rem;
+}
+.trail__label {
+  font-family: var(--ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.trail button {
+  font: inherit;
+  font-family: var(--mono);
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.1rem 0.2rem;
+  border-radius: 4px;
+}
+.trail button:hover { color: var(--text); background: var(--sunk); }
+.trail button:last-child { color: var(--text); font-weight: 700; }
+
+/* ---------------- main split ---------------- */
+.split {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 0.9rem;
+}
+@media (min-width: 900px) {
+  .split { grid-template-columns: minmax(0, 1fr) 17rem; align-items: start; }
+}
+
+.stage {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.5rem;
+  min-width: 0;
+}
+.orbit { display: block; width: 100%; max-width: 47rem; margin: 0 auto; height: auto; }
+.orbit__center { font-family: var(--mono); font-size: 21px; font-weight: 700; }
+.orbit__word { font-family: var(--mono); font-size: 12.5px; }
+.orbit__pill { cursor: pointer; }
+.orbit__pill:hover rect { filter: brightness(0.96); }
+.orbit__pill:focus-visible { outline: none; }
+.orbit__pill:focus-visible rect { stroke-width: 2.5; }
+.orbit__label {
+  font-size: 8.4px;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+.orbit__empty { font-size: 12px; fill: var(--muted); font-family: var(--ui); }
+
+/* ---------------- detail card ---------------- */
+.card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  border-top: 4px solid var(--primary);
+}
+.card__word { font-family: var(--mono); font-size: 1.75rem; font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; }
+.card__gloss { font-size: 0.85rem; margin: 0; }
+.card__facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.18rem 0.7rem;
+  font-size: 0.76rem;
+  margin: 0;
+}
+.card__facts dt { color: var(--muted); }
+.card__facts dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.card__topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--fam-link-bg);
+  color: var(--fam-link);
+  border: 0;
+  cursor: pointer;
+  font-family: var(--ui);
+  align-self: flex-start;
+}
+.card__topic:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* ---------------- letter-level strip ---------------- */
+.letters {
+  border: 1px solid var(--border);
+  background: var(--sunk);
+  border-radius: var(--radius);
+  padding: 0.8rem 0.9rem;
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+.letters__head {
+  font-size: 0.64rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+.letters__row { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.6rem; align-items: baseline; }
+@media (max-width: 560px) { .letters__row { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; } }
+.letters__kind { font-size: 0.74rem; color: var(--muted); }
+.letters__words { display: flex; flex-wrap: wrap; gap: 0.28rem; }
+.letters__words button {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  cursor: pointer;
+}
+.letters__words button:hover { border-color: var(--primary); }
+.letters__words button:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* ---------------- legend + footer ---------------- */
+.legend { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 1rem; }
+.legend span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.legend span::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; }
+
+.foot {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.foot code { font-family: var(--mono); }
+.foot p { margin: 0 0 0.4rem; max-width: 74ch; }
+.foot b { color: var(--text); }
+</style>
+
+<div class="app">
+  <header class="app__header">
+    <div class="brand">
+      <svg class="brand__logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="#4ecdc4"></rect>
+        <g fill="#06403b">
+          <rect x="6" y="9" width="12" height="2.6" rx="1.3"></rect>
+          <rect x="6" y="14.7" width="20" height="2.6" rx="1.3"></rect>
+          <rect x="6" y="20.4" width="8" height="2.6" rx="1.3"></rect>
+        </g>
+      </svg>
+      <span class="brand__text">
+        <span class="brand__name">bip39 explorer</span>
+        <span class="brand__version" id="version">v1.0.0</span>
+      </span>
+    </div>
+    <p class="app__note">Offline word reference. Never type a real seed phrase.</p>
+  </header>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>
+    </svg>
+    <input id="q" type="search" placeholder="search 2048 words — try ocen, krane, or bird"
+           spellcheck="false" autocomplete="off" aria-label="Search the BIP-39 word list">
+    <span class="search__count" id="count"></span>
+  </div>
+  <div class="hits" id="hits"></div>
+
+  <nav class="trail" id="trail" aria-label="Words visited"></nav>
+
+  <div class="split">
+    <div class="stage">
+      <svg class="orbit" id="orbit" viewBox="-320 -192 640 384" role="img"
+           aria-labelledby="orbit-title"><title id="orbit-title">Relation map</title></svg>
+    </div>
+    <aside class="card" id="card"></aside>
+  </div>
+
+  <section class="letters" id="letters"></section>
+
+  <div class="legend" id="legend"></div>
+
+  <footer class="foot">
+    <p><b>Where the relations come from.</b> The coloured map is precomputed:
+      WordNet 3.0 for typed lexical relations, ConceptNet 5.7 for common-sense
+      assertions, and ConceptNet Numberbatch 19.08 for associative similarity,
+      fused into <code>data/semantic-index.json</code> and committed. The strip
+      below the map is computed live in the browser from the letters
+      themselves.</p>
+    <p>Word list <code>bip-0039/english.txt</code>, 2048 words, sha256
+      <code id="sha">…</code>. Semantic index CC BY-SA 4.0 after ConceptNet.</p>
+  </footer>
+</div>
+
+<script type="application/json" id="semantic-index">__INDEX__</script>
+
+<script>
+const INDEX = JSON.parse(document.getElementById('semantic-index').textContent);
+const WORDS = INDEX.words.map((e) => e.w);
+const ENTRY = new Map(INDEX.words.map((e, i) => [e.w, e]));
+const AT = new Map(WORDS.map((w, i) => [w, i]));
+const RELATIONS = INDEX.relations;
+const TOPICS = INDEX.topics;
+
+document.getElementById('sha').textContent = INDEX.wordlist.sha256.slice(0, 8) + '…';
+
+/* ------------------------------------------------------------------ *
+ * Relation families. Eighteen relations, six hues: the colour tells you
+ * what kind of knowledge an edge is, the label tells you exactly which.
+ * ------------------------------------------------------------------ */
+const FAMILY = {
+  synonym: 'identity', similar: 'identity', derived: 'identity',
+  'is-a': 'hierarchy', kind: 'hierarchy', sibling: 'hierarchy',
+  'part-of': 'part', 'has-part': 'part', 'made-of': 'part',
+  'used-for': 'use', at: 'use', can: 'use', causes: 'use', property: 'use',
+  opposite: 'contrast',
+  related: 'link', context: 'link',
+  associated: 'assoc',
+};
+const FAMILY_LABEL = {
+  identity: 'same meaning',
+  hierarchy: 'kinds and categories',
+  part: 'parts and materials',
+  use: 'use, place and effect',
+  contrast: 'opposites',
+  link: 'loosely related',
+  assoc: 'turns up together',
+};
+const SOURCE_NAME = ['', 'WordNet', 'ConceptNet', 'WordNet + ConceptNet',
+  'Numberbatch', 'WordNet + Numberbatch', 'ConceptNet + Numberbatch', 'all three'];
+
+document.getElementById('legend').innerHTML = Object.entries(FAMILY_LABEL)
+  .map(([fam, label]) =>
+    `<span style="color:var(--fam-${fam});background:var(--fam-${fam}-bg)">${label}</span>`)
+  .join('');
+
+/* ------------------------------------------------------------------ *
+ * The letter-level engine. Not precomputed: a pass over 2048 short
+ * strings is well under a millisecond, and the rules belong in one
+ * place rather than half here and half in a build script.
+ * ------------------------------------------------------------------ */
+const CLS = {
+  a: 'A', e: 'A', i: 'A', o: 'A', u: 'A', y: 'A',
+  b: 'B', p: 'B', f: 'F', v: 'F', d: 'D', t: 'D',
+  g: 'K', k: 'K', c: 'K', q: 'K', j: 'J',
+  s: 'S', z: 'S', x: 'S', m: 'N', n: 'N',
+  l: 'L', r: 'R', w: 'W', h: '',
+};
+
+function soundKey(w) {
+  let s = w
+    .replace(/^gh/, 'g').replace(/gh/g, '')
+    .replace(/ph/g, 'f').replace(/ck/g, 'k')
+    .replace(/c(?=[eiy])/g, 's')
+    .replace(/^kn/, 'n').replace(/^wr/, 'r').replace(/mb$/, 'm');
+  if (s.length > 3) s = s.replace(/e$/, '');
+  s = s.replace(/(.)\1+/g, '$1');
+  let out = '';
+  for (const ch of s) {
+    const c = CLS[ch];
+    if (c && c !== out[out.length - 1]) out += c;
+  }
+  return out;
+}
+
+function editDistance(a, b, cap) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > cap) return cap + 1;
+  let prev2 = null, prev = new Array(n + 1), cur = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    cur[0] = i;
+    let best = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        v = Math.min(v, prev2[j - 2] + 1);
+      }
+      cur[j] = v;
+      if (v < best) best = v;
+    }
+    if (best > cap) return cap + 1;
+    prev2 = prev;
+    prev = cur.slice();
+  }
+  return prev[n];
+}
+
+function subsequence(q, w) {
+  let i = 0;
+  for (const ch of w) { if (ch === q[i]) i++; if (i === q.length) return true; }
+  return false;
+}
+
+const SOUND_GROUPS = new Map();
+for (const w of WORDS) {
+  const k = soundKey(w);
+  if (!SOUND_GROUPS.has(k)) SOUND_GROUPS.set(k, []);
+  SOUND_GROUPS.get(k).push(w);
+}
+
+/** Ranked search hits: which words the query could mean, and why. */
+function search(raw) {
+  const q = raw.toLowerCase().replace(/[^a-z]/g, '');
+  if (!q) return [];
+  const seen = new Map();
+  const add = (w, why, rank) => { if (!seen.has(w)) seen.set(w, { w, why, rank }); };
+
+  for (const w of WORDS) {
+    if (w === q) add(w, 'exact', 0);
+    else if (w.startsWith(q)) add(w, 'starts with', 1 + (w.length - q.length) / 64);
+  }
+  for (const w of WORDS) if (!seen.has(w) && w.includes(q)) add(w, 'contains', 3);
+  if (q.length >= 3) {
+    const cap = q.length <= 4 ? 1 : 2;
+    for (const w of WORDS) {
+      if (seen.has(w)) continue;
+      const d = editDistance(q, w, cap);
+      if (d <= cap) add(w, `${d} edit${d === 1 ? '' : 's'} away`, 2 + (d - 1));
+    }
+  }
+  for (const w of (SOUND_GROUPS.get(soundKey(q)) || [])) add(w, 'sounds like', 3.5);
+  if (q.length >= 3) {
+    for (const w of WORDS) if (!seen.has(w) && subsequence(q, w)) add(w, 'letters in order', 4);
+  }
+  return [...seen.values()].sort((a, b) => a.rank - b.rank || a.w.localeCompare(b.w));
+}
+
+/** The letter-level neighbours of one word, for the strip under the map. */
+function letterNeighbours(word) {
+  const family = WORDS.filter((w) => w !== word && w.startsWith(word.slice(0, 3)));
+  const key = soundKey(word);
+  const sounds = (SOUND_GROUPS.get(key) || []).filter((w) => w !== word);
+  const near = WORDS.filter((w) => w !== word && editDistance(word, w, 1) <= 1);
+  const rhymes = word.length >= 4
+    ? WORDS.filter((w) => w !== word && w.length >= 4 && w.slice(-3) === word.slice(-3))
+    : [];
+  return [
+    ['same first letters', family],
+    ['sounds like', sounds],
+    ['one edit away', near],
+    ['rhymes with', rhymes],
+  ].filter(([, list]) => list.length);
+}
+
+/* ------------------------------------------------------------------ *
+ * View
+ * ------------------------------------------------------------------ */
+const bits = (i) => i.toString(2).padStart(11, '0').replace(/(\d{4})(\d{4})(\d{3})/, '$1 $2 $3');
+const el = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const state = { word: 'bird', trail: ['bird'], query: '' };
+
+/* Up to six spokes. Angles are chosen per count so the map fills the
+   frame rather than leaving a gap where a missing relation would be. */
+const SPOKE_ANGLES = {
+  1: [0],
+  2: [-32, 148],
+  3: [-90, 30, 150],
+  4: [-42, 42, 138, 222],
+  5: [-90, -20, 52, 128, 200],
+  6: [-90, -34, 34, 90, 146, 214],
+};
+const MAX_SPOKES = 6;
+const PER_SPOKE = 4;
+const CHAR = 7.55;                    // monospace advance at 12.5px
+
+function groupsFor(word) {
+  const entry = ENTRY.get(word);
+  if (!entry) return [];
+  const byRelation = new Map();
+  for (const [target, relation, score, mask] of entry.n) {
+    if (!byRelation.has(relation)) byRelation.set(relation, []);
+    byRelation.get(relation).push({ word: WORDS[target], score, mask });
+  }
+  return [...byRelation.entries()]
+    .map(([relation, members]) => ({
+      relation,
+      family: FAMILY[relation] || 'link',
+      label: RELATIONS[relation].label,
+      best: members[0].score,
+      members: members.slice(0, PER_SPOKE),
+      total: members.length,
+    }))
+    // Strongest relation first, then the more specific of two equals.
+    .sort((a, b) => b.best - a.best || RELATIONS[a.relation].rank - RELATIONS[b.relation].rank)
+    .slice(0, MAX_SPOKES);
+}
+
+function renderOrbit() {
+  const word = state.word;
+  const svg = el('orbit');
+  const entry = ENTRY.get(word);
+  const groups = groupsFor(word);
+  const index = AT.get(word);
+  const parts = [];
+
+  parts.push(`<g>
+    <rect x="-78" y="-32" width="156" height="64" rx="15"
+      fill="var(--fam-identity-bg)" stroke="var(--fam-identity)" stroke-width="1.6"></rect>
+    <text class="orbit__center" x="0" y="-2" text-anchor="middle"
+      fill="var(--fam-identity)">${esc(word)}</text>
+    <text x="0" y="17" text-anchor="middle" fill="var(--muted)"
+      style="font-family:var(--mono);font-size:9.5px">#${String(index).padStart(4, '0')} · ${bits(index)}</text>
+  </g>`);
+
+  if (!groups.length) {
+    parts.push(`<text class="orbit__empty" x="0" y="-70" text-anchor="middle">
+      No semantic neighbours — see the letter matches below.</text>`);
+    svg.innerHTML = parts.join('');
+    return;
+  }
+
+  const angles = SPOKE_ANGLES[groups.length];
+  groups.forEach((group, i) => {
+    const rad = (angles[i] * Math.PI) / 180;
+    const cx = Math.cos(rad) * 172;
+    const cy = Math.sin(rad) * 124;
+    const fam = group.family;
+
+    parts.push(`<line x1="${Math.cos(rad) * 82}" y1="${Math.sin(rad) * 40}"
+      x2="${cx * 0.8}" y2="${cy * 0.8}" stroke="var(--fam-${fam})"
+      stroke-width="1.25" stroke-dasharray="3 3" opacity="0.6"></line>`);
+
+    const spread = (group.members.length - 1) * 12;
+    parts.push(`<text class="orbit__label" x="${cx}" y="${cy - spread - 20}"
+      text-anchor="middle" fill="var(--fam-${fam})">${esc(group.label)}${
+        group.total > group.members.length ? ` +${group.total - group.members.length}` : ''
+      }</text>`);
+
+    group.members.forEach((member, k) => {
+      const y = cy - spread + k * 24;
+      const half = (member.word.length * CHAR) / 2 + 10;
+      // Score drives opacity: a 98 is a fact, a 26 is a hunch, and the
+      // map should not present them identically.
+      const solidity = 0.42 + 0.58 * (member.score / 100);
+      parts.push(`<g class="orbit__pill" tabindex="0" role="button"
+        data-word="${esc(member.word)}"
+        aria-label="${esc(member.word)}, ${esc(group.label)}, strength ${member.score}">
+        <title>${esc(member.word)} — ${esc(group.label)} — ${member.score}/100 — ${SOURCE_NAME[member.mask]}</title>
+        <rect x="${cx - half}" y="${y - 13}" width="${half * 2}" height="23" rx="11.5"
+          fill="var(--fam-${fam}-bg)" stroke="var(--fam-${fam})" stroke-width="1"
+          opacity="${solidity.toFixed(2)}"></rect>
+        <text class="orbit__word" x="${cx}" y="${y + 3}" text-anchor="middle"
+          fill="var(--fam-${fam})">${esc(member.word)}</text>
+      </g>`);
+    });
+  });
+
+  svg.innerHTML = parts.join('');
+}
+
+function renderCard() {
+  const word = state.word;
+  const entry = ENTRY.get(word);
+  const index = AT.get(word);
+  const topic = entry.t !== undefined ? TOPICS[entry.t] : null;
+  const degree = entry.n.length;
+
+  el('card').innerHTML = `
+    <div class="card__word">${esc(word)}</div>
+    ${entry.g ? `<p class="card__gloss">${esc(entry.g)}</p>` : `
+      <p class="card__gloss" style="color:var(--muted)">No dictionary entry — this word
+      postdates every source corpus.</p>`}
+    <dl class="card__facts">
+      <dt>index</dt><dd>${index} of 2047</dd>
+      <dt>11 bits</dt><dd>${bits(index)}</dd>
+      <dt>hex</dt><dd>0x${index.toString(16).toUpperCase().padStart(3, '0')}</dd>
+      <dt>prefix</dt><dd>${esc(word.slice(0, 4))}</dd>
+      ${entry.p ? `<dt>part</dt><dd>${{ n: 'noun', v: 'verb', a: 'adjective', s: 'adjective', r: 'adverb' }[entry.p] || entry.p}</dd>` : ''}
+      <dt>links</dt><dd>${degree}</dd>
+    </dl>
+    ${topic ? `<button class="card__topic" data-topic="${topic.id}">
+      topic · ${esc(topic.label)} · ${topic.size}</button>` : ''}
+    <p class="card__gloss" style="color:var(--muted);font-size:0.74rem;margin:0">
+      Those four letters identify this word uniquely — no other entry in the
+      list begins <span style="font-family:var(--mono)">${esc(word.slice(0, 4))}</span>.
+    </p>`;
+}
+
+function renderLetters() {
+  const rows = letterNeighbours(state.word);
+  el('letters').innerHTML = `
+    <div class="letters__head">Letters and sound — computed live, not from the index</div>
+    ${rows.length ? rows.map(([kind, list]) => `
+      <div class="letters__row">
+        <span class="letters__kind">${kind}</span>
+        <span class="letters__words">${list.slice(0, 22)
+          .map((w) => `<button data-word="${esc(w)}">${esc(w)}</button>`).join('')}${
+          list.length > 22 ? `<span class="letters__kind">+${list.length - 22}</span>` : ''
+        }</span>
+      </div>`).join('')
+      : '<div class="letters__kind">Nothing in the list looks or sounds like this one.</div>'}`;
+}
+
+function renderTrail() {
+  el('trail').innerHTML = '<span class="trail__label">Trail</span>' +
+    state.trail.map((w, i) =>
+      `${i ? '<span aria-hidden="true">›</span>' : ''}<button data-trail="${i}">${esc(w)}</button>`
+    ).join('');
+}
+
+function renderHits() {
+  const hits = search(state.query);
+  el('count').textContent = state.query ? `${hits.length} / 2048` : '2048 words';
+  if (!state.query) {
+    el('hits').innerHTML = '<span class="hits__empty">Type to search, or click any word on the map to travel to it.</span>';
+    return;
+  }
+  if (!hits.length) {
+    el('hits').innerHTML = '<span class="hits__empty">Nothing matches. Try fewer letters.</span>';
+    return;
+  }
+  const q = state.query.toLowerCase().replace(/[^a-z]/g, '');
+  el('hits').innerHTML = hits.slice(0, 24).map((hit) => {
+    const at = hit.w.indexOf(q);
+    const shown = at < 0 ? esc(hit.w)
+      : esc(hit.w.slice(0, at)) + '<mark>' + esc(hit.w.slice(at, at + q.length)) +
+        '</mark>' + esc(hit.w.slice(at + q.length));
+    return `<button class="hit" data-word="${esc(hit.w)}">${shown}<em>${hit.why}</em></button>`;
+  }).join('') + (hits.length > 24
+    ? `<span class="hits__empty">+${hits.length - 24} more</span>` : '');
+}
+
+function go(word, { fromTrail = false } = {}) {
+  if (!ENTRY.has(word) || word === state.word) return;
+  state.word = word;
+  if (!fromTrail) {
+    state.trail.push(word);
+    if (state.trail.length > 8) state.trail.shift();
+  }
+  render();
+  el('orbit').closest('.stage').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function render() {
+  renderOrbit();
+  renderCard();
+  renderLetters();
+  renderTrail();
+  renderHits();
+}
+
+document.addEventListener('click', (event) => {
+  const word = event.target.closest('[data-word]');
+  if (word) { go(word.dataset.word); return; }
+
+  const step = event.target.closest('[data-trail]');
+  if (step) {
+    const i = +step.dataset.trail;
+    state.trail = state.trail.slice(0, i + 1);
+    go(state.trail[i], { fromTrail: true });
+    state.word = state.trail[i];
+    render();
+    return;
+  }
+
+  const topic = event.target.closest('[data-topic]');
+  if (topic) {
+    // Jump to the topic's most central word, which is also its name.
+    go(TOPICS[+topic.dataset.topic].label);
+  }
+});
+
+/* The pills are SVG groups, so they need their own keyboard handling to
+   behave like the buttons they claim to be. */
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const pill = event.target.closest && event.target.closest('.orbit__pill');
+  if (pill) { event.preventDefault(); go(pill.dataset.word); }
+});
+
+el('q').addEventListener('input', (event) => {
+  state.query = event.target.value;
+  renderHits();
+});
+el('q').addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  const first = search(state.query)[0];
+  if (first) { go(first.w); event.target.select(); }
+});
+
+el('version').textContent = '__VERSION__';
+render();
+</script>
