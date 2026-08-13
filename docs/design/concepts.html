@@ -1,0 +1,1664 @@
+<title>BIP39 Explorer Concepts</title>
+
+<style>
+/* ------------------------------------------------------------------ *
+ * Tokens.
+ *
+ * Two palettes live here on purpose:
+ *
+ *   --p-*   the pitch page itself — a cooler, greener paper so the
+ *           mockups read as objects sitting ON a page.
+ *   --s-*   the *screen* palette, lifted verbatim from CountRoster's
+ *           apps/web/src/styles.css, so every rendering below shows the
+ *           app's real skin rather than a pitch-deck approximation.
+ *
+ * Both are defined on bare :root (light), then redefined for the two
+ * dark states. No component ever names a colour directly.
+ * ------------------------------------------------------------------ */
+:root {
+  --p-ground: #eef2f1;
+  --p-surface: #ffffff;
+  --p-sunk: #e3e9e7;
+  --p-ink: #101816;
+  --p-muted: #5d6f6b;
+  --p-rule: #d8e1df;
+  --p-rule-strong: #c2cfcc;
+
+  /* CountRoster's accent, and a darkened cut of it for text on paper. */
+  --accent: #4ecdc4;
+  --accent-ink: #06403b;
+  --accent-text: #0d8579;
+
+  /* Relation hues. Five hues carry seven match reasons — the two
+     "letters" tiers share teal, the two "shape" tiers share indigo. */
+  --rel-start: #0d8579;
+  --rel-start-bg: #d9f2ef;
+  --rel-inside: #4a4ec6;
+  --rel-inside-bg: #e2e3fa;
+  --rel-typo: #97620a;
+  --rel-typo-bg: #fbeed2;
+  --rel-sound: #7a3cc4;
+  --rel-sound-bg: #eee2fb;
+  --rel-mean: #17784a;
+  --rel-mean-bg: #d9f0e3;
+
+  /* CountRoster screen tokens. */
+  --s-bg: #fafafa;
+  --s-surface: #ffffff;
+  --s-text: #1a1a1a;
+  --s-muted: #6b7280;
+  --s-border: #e5e7eb;
+  --s-radius: 12px;
+  --s-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --s-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
+
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --p-ground: #0e1211;
+    --p-surface: #161c1b;
+    --p-sunk: #111716;
+    --p-ink: #e9efed;
+    --p-muted: #92a4a0;
+    --p-rule: #253030;
+    --p-rule-strong: #35423f;
+
+    --accent-text: #5fd8ce;
+
+    --rel-start: #5fd8ce;
+    --rel-start-bg: #0d2c2a;
+    --rel-inside: #9ba0f7;
+    --rel-inside-bg: #1c1e3d;
+    --rel-typo: #ecb552;
+    --rel-typo-bg: #33260c;
+    --rel-sound: #c497f3;
+    --rel-sound-bg: #2a1c3c;
+    --rel-mean: #62cf95;
+    --rel-mean-bg: #0f2c1e;
+
+    --s-bg: #18181b;
+    --s-surface: #232327;
+    --s-text: #f4f4f5;
+    --s-muted: #a1a1aa;
+    --s-border: #3f3f46;
+  }
+}
+
+:root[data-theme="dark"] {
+  --p-ground: #0e1211;
+  --p-surface: #161c1b;
+  --p-sunk: #111716;
+  --p-ink: #e9efed;
+  --p-muted: #92a4a0;
+  --p-rule: #253030;
+  --p-rule-strong: #35423f;
+
+  --accent-text: #5fd8ce;
+
+  --rel-start: #5fd8ce;
+  --rel-start-bg: #0d2c2a;
+  --rel-inside: #9ba0f7;
+  --rel-inside-bg: #1c1e3d;
+  --rel-typo: #ecb552;
+  --rel-typo-bg: #33260c;
+  --rel-sound: #c497f3;
+  --rel-sound-bg: #2a1c3c;
+  --rel-mean: #62cf95;
+  --rel-mean-bg: #0f2c1e;
+
+  --s-bg: #18181b;
+  --s-surface: #232327;
+  --s-text: #f4f4f5;
+  --s-muted: #a1a1aa;
+  --s-border: #3f3f46;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--p-ground);
+  color: var(--p-ink);
+  font-family: var(--ui);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* ---------------------------------------------------------------- *
+ * Page header — the CountRoster brand lockup, adapted.
+ * ---------------------------------------------------------------- */
+.head {
+  border-bottom: 1px solid var(--p-rule);
+  background: color-mix(in srgb, var(--p-ground) 90%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.head__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0;
+}
+.brand {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 0;
+}
+.brand__mark {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 0.4rem;
+  flex: none;
+  display: block;
+}
+.brand__text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.brand__name {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+.brand__version {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--p-muted);
+}
+.head__tag {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--p-muted);
+  padding-top: 0.25rem;
+  text-align: right;
+}
+/* On a phone the brand lockup is the whole header; the dateline would only
+   crowd it. */
+@media (max-width: 560px) {
+  .head__tag { display: none; }
+}
+
+/* ---------------------------------------------------------------- *
+ * Opening
+ * ---------------------------------------------------------------- */
+.intro { padding: 3rem 0 1.75rem; }
+h1 {
+  font-family: var(--mono);
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  text-wrap: balance;
+  max-width: 18ch;
+}
+h1 em { font-style: normal; color: var(--accent-text); }
+.lede {
+  font-size: 1.08rem;
+  max-width: 62ch;
+  color: var(--p-ink);
+  margin: 0 0 1rem;
+}
+.lede + .lede { color: var(--p-muted); font-size: 1rem; }
+
+.note {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  border: 1px solid var(--p-rule-strong);
+  border-left: 3px solid var(--rel-typo);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  background: var(--p-surface);
+  font-size: 0.9rem;
+  max-width: 68ch;
+  margin: 1.5rem 0 0;
+}
+.note b { color: var(--rel-typo); }
+
+/* Relation legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.chip::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.chip--start  { color: var(--rel-start);  background: var(--rel-start-bg); }
+.chip--inside { color: var(--rel-inside); background: var(--rel-inside-bg); }
+.chip--typo   { color: var(--rel-typo);   background: var(--rel-typo-bg); }
+.chip--sound  { color: var(--rel-sound);  background: var(--rel-sound-bg); }
+.chip--mean   { color: var(--rel-mean);   background: var(--rel-mean-bg); }
+
+/* ---------------------------------------------------------------- *
+ * The shared query bar — one input drives all four renderings.
+ * ---------------------------------------------------------------- */
+.driver {
+  position: sticky;
+  top: 3.55rem;
+  z-index: 35;
+  background: color-mix(in srgb, var(--p-ground) 94%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-top: 1px solid var(--p-rule);
+  border-bottom: 1px solid var(--p-rule);
+  padding: 0.75rem 0;
+  margin-top: 2.5rem;
+}
+.driver__row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.driver__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--p-muted);
+  flex: none;
+}
+.driver__input {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--p-rule-strong);
+  border-radius: 10px;
+  background: var(--p-surface);
+  color: var(--p-ink);
+  min-width: 12rem;
+  flex: 1 1 12rem;
+}
+.driver__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.driver__samples { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.samp {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--p-rule-strong);
+  background: var(--p-surface);
+  color: var(--p-ink);
+  cursor: pointer;
+}
+.samp:hover { border-color: var(--accent); }
+.samp:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.samp em { font-style: normal; color: var(--p-muted); }
+.driver__count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--p-muted);
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- *
+ * Concept sections
+ * ---------------------------------------------------------------- */
+.concept { padding: 3.25rem 0 0; }
+.concept__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+@media (min-width: 860px) {
+  .concept__head { grid-template-columns: minmax(0, 26rem) minmax(0, 1fr); gap: 2.5rem; align-items: start; }
+}
+.concept__id {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  color: var(--p-muted);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+.concept__name {
+  font-family: var(--mono);
+  font-size: 1.55rem;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+.concept__thesis { margin: 0; font-size: 0.98rem; }
+.concept__meta { display: flex; flex-direction: column; gap: 0.55rem; font-size: 0.88rem; }
+.concept__meta div { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 0.75rem; }
+.concept__meta dt, .concept__meta b {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--p-muted);
+  font-weight: 600;
+  padding-top: 0.12rem;
+}
+
+/* The device frame every rendering sits in. */
+.screen {
+  border: 1px solid var(--p-rule-strong);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--s-bg);
+  color: var(--s-text);
+  font-family: var(--ui);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+.screen__chrome {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  background: var(--p-sunk);
+  border-bottom: 1px solid var(--p-rule);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--p-muted);
+}
+.screen__dots { display: flex; gap: 0.28rem; }
+.screen__dots i { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--p-rule-strong); display: block; }
+.screen__body { padding: 1rem; }
+
+/* ---- shared word typography inside screens ---- */
+.w { font-family: var(--mono); }
+.screen mark {
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 0.05em;
+}
+.idx {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  color: var(--s-muted);
+}
+
+/* ---------------------------------------------------------------- *
+ * 01 — Roster: CountRoster's card grid
+ * ---------------------------------------------------------------- */
+.cr-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--s-border);
+}
+.cr-nav { display: flex; gap: 0.4rem; align-items: center; }
+.cr-nav span {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  color: var(--s-muted);
+}
+.cr-nav span.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.cr-search {
+  margin: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--s-border);
+  background: var(--s-surface);
+  border-radius: var(--s-radius);
+  padding: 0.55rem 0.75rem;
+  box-shadow: var(--s-shadow);
+}
+.cr-search svg { width: 1.05rem; height: 1.05rem; flex: none; color: var(--s-muted); }
+.cr-search .q { font-family: var(--mono); font-size: 1rem; }
+.cr-search .caret {
+  width: 1px; height: 1.1em; background: var(--accent);
+  animation: blink 1.1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cr-search .caret { animation: none; } }
+.cr-filters { display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0 1rem 1rem; }
+.cr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.85rem;
+  margin: 0 1rem 1rem;
+  min-width: 0;
+}
+.cr-grid > * { min-width: 0; }
+.cr-card {
+  background: var(--s-surface);
+  border: 1px solid var(--s-border);
+  border-radius: var(--s-radius);
+  box-shadow: var(--s-shadow);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 4px solid var(--rail, var(--accent));
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+@media (hover: hover) { .cr-card:hover { box-shadow: var(--s-shadow-lg); transform: translateY(-2px); } }
+.cr-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cr-card__top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.cr-card__word { font-family: var(--mono); font-size: 1.3rem; font-weight: 700; overflow-wrap: anywhere; }
+.cr-card__bits {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--s-muted);
+  letter-spacing: 0.02em;
+}
+.cr-card__rel { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.cr-card__rel .chip { font-size: 0.66rem; padding: 0.14rem 0.45rem; }
+.cr-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--s-border);
+  background: var(--s-surface);
+}
+.cr-tabs span {
+  padding: 0.55rem 0;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--s-muted);
+}
+.cr-tabs span.on { color: var(--accent-text); }
+
+/* ---------------------------------------------------------------- *
+ * 02 — Console: ranked, reason-grouped results
+ * ---------------------------------------------------------------- */
+.cn {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 760px) {
+  .cn { grid-template-columns: minmax(0, 1fr) 15.5rem; }
+}
+.cn__list { padding: 0.5rem 0 0.75rem; max-height: 30rem; overflow-y: auto; }
+.cn__group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem 0.35rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.cn__group::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--s-border);
+}
+.cn__row {
+  display: grid;
+  grid-template-columns: 3px minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.3rem 1rem 0.3rem 0;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.cn__row:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.cn__row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cn__row.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.cn__rail { height: 1.6rem; border-radius: 0 2px 2px 0; }
+.cn__word { font-family: var(--mono); font-size: 0.98rem; }
+.cn__why { font-size: 0.72rem; color: var(--s-muted); }
+.cn__aside {
+  border-top: 1px solid var(--s-border);
+  padding: 1rem;
+  background: var(--s-surface);
+}
+@media (min-width: 760px) {
+  .cn__aside { border-top: 0; border-left: 1px solid var(--s-border); }
+}
+.cn__big { font-family: var(--mono); font-size: 1.9rem; font-weight: 700; line-height: 1.1; overflow-wrap: anywhere; }
+.cn__facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.2rem 0.75rem; margin: 0.75rem 0 0; font-size: 0.76rem; }
+.cn__facts dt { color: var(--s-muted); }
+.cn__facts dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cn__keys {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--s-border);
+  font-size: 0.7rem;
+  color: var(--s-muted);
+  flex-wrap: wrap;
+}
+kbd {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  border: 1px solid var(--s-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0 0.28rem;
+  background: var(--s-bg);
+}
+
+/* ---------------------------------------------------------------- *
+ * 03 — Field: all 2048, live
+ * ---------------------------------------------------------------- */
+.fld__bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0 0 0.75rem;
+  flex-wrap: wrap;
+}
+.fld__count { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 1.5rem; font-weight: 700; }
+.fld__count small { font-size: 0.8rem; font-weight: 400; color: var(--s-muted); }
+.fld__hint { font-size: 0.76rem; color: var(--s-muted); }
+.fld__grid {
+  display: grid;
+  grid-template-columns: repeat(64, 1fr);
+  gap: 1px;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+.fld__cell {
+  aspect-ratio: 1;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--s-muted) 26%, transparent);
+}
+.fld__cell.on { border-radius: 2px; }
+.fld__legend { display: flex; gap: 0.4rem; flex-wrap: wrap; padding-top: 0.75rem; }
+.fld__peek {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--s-muted);
+  padding-top: 0.6rem;
+  min-height: 1.4em;
+}
+.fld__peek b { color: var(--s-text); }
+
+/* ---------------------------------------------------------------- *
+ * 04 — Orbit
+ * ---------------------------------------------------------------- */
+.orb { display: block; width: 100%; max-width: 37rem; margin: 0 auto; height: auto; }
+.orb__center { font-family: var(--mono); font-size: 19px; font-weight: 700; }
+.orb__word { font-family: var(--mono); font-size: 12.5px; cursor: pointer; }
+/* Halo the labels so a spoke's dashed line never runs through its own
+   caption on the diagonal arrangements. */
+.orb__label {
+  font-size: 8.5px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--s-bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.orb__hint { font-size: 0.76rem; color: var(--s-muted); text-align: center; padding-top: 0.5rem; }
+
+/* ---------------------------------------------------------------- *
+ * Prose sections + tables
+ * ---------------------------------------------------------------- */
+.section { padding: 3.5rem 0 0; }
+.section > h2 {
+  font-family: var(--mono);
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4rem;
+}
+.section > p { max-width: 66ch; margin: 0 0 1.25rem; color: var(--p-muted); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--p-rule); border-radius: 12px; background: var(--p-surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; min-width: 44rem; }
+th, td { text-align: left; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--p-rule); vertical-align: top; }
+th {
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--p-muted);
+  font-weight: 700;
+  background: var(--p-sunk);
+}
+tbody tr:last-child td { border-bottom: 0; }
+td code, .mono { font-family: var(--mono); font-size: 0.86em; }
+
+.cols {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 800px) { .cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.panel {
+  border: 1px solid var(--p-rule);
+  border-radius: 12px;
+  background: var(--p-surface);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.panel h3 {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--p-muted);
+}
+.panel p { margin: 0; font-size: 0.88rem; }
+.panel ul { margin: 0; padding-left: 1.1rem; font-size: 0.88rem; display: grid; gap: 0.3rem; }
+pre {
+  margin: 0;
+  background: var(--p-sunk);
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+.swatches { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.sw {
+  width: 2rem; height: 2rem; border-radius: 6px;
+  border: 1px solid var(--p-rule-strong);
+  display: block;
+}
+
+.rec {
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--p-surface));
+  padding: 1.25rem;
+}
+.rec h2 { margin: 0 0 0.5rem; font-family: var(--mono); font-size: 1.2rem; }
+.rec ol { margin: 0.5rem 0 0; padding-left: 1.2rem; display: grid; gap: 0.4rem; font-size: 0.92rem; }
+.rec strong { color: var(--accent-text); }
+
+.foot {
+  margin-top: 4rem;
+  border-top: 1px solid var(--p-rule);
+  padding: 1.25rem 0 3rem;
+  font-size: 0.78rem;
+  color: var(--p-muted);
+}
+.foot code { font-family: var(--mono); }
+</style>
+
+<header class="head">
+  <div class="wrap head__row">
+    <div class="brand">
+      <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="#4ecdc4"></rect>
+        <g fill="#06403b">
+          <rect x="6" y="9" width="12" height="2.6" rx="1.3"></rect>
+          <rect x="6" y="14.7" width="20" height="2.6" rx="1.3"></rect>
+          <rect x="6" y="20.4" width="8" height="2.6" rx="1.3"></rect>
+        </g>
+      </svg>
+      <span class="brand__text">
+        <span class="brand__name">bip39 explorer</span>
+        <span class="brand__version">v1.0.0 · design</span>
+      </span>
+    </div>
+    <div class="head__tag">Concept pitch<br>13 Aug 2026</div>
+  </div>
+</header>
+
+<main>
+  <section class="wrap intro">
+    <h1>Four ways to search <em>2048 words</em></h1>
+    <p class="lede">
+      The BIP-39 English list is small, fixed and famously fiddly. People open it under
+      three quite different pressures: checking a word they half-remember off a metal
+      backup, transcribing someone's handwriting, or learning how the list is built.
+      A substring filter serves none of them well.
+    </p>
+    <p class="lede">
+      So the search here is a <strong>ladder of match reasons</strong> — position, shape,
+      spelling distance, sound, and meaning — and every result says which rung it came
+      in on. Below are four ways to render that same engine. All four are live: type in
+      the bar and they all respond to the same query.
+    </p>
+
+    <ul class="legend">
+      <li class="chip chip--start">starts with</li>
+      <li class="chip chip--inside">contains / letters in order</li>
+      <li class="chip chip--typo">1–2 edits away</li>
+      <li class="chip chip--sound">sounds like</li>
+      <li class="chip chip--mean">related meaning</li>
+    </ul>
+
+    <p class="note">
+      <span aria-hidden="true">⚠</span>
+      <span><b>Never type a real seed phrase into anything.</b> The app is a static,
+      offline word reference — no network calls, no storage, no phrase field. That
+      constraint is a design input, not a disclaimer: there is deliberately nowhere in
+      this UI to enter twelve words in a row.</span>
+    </p>
+  </section>
+
+  <div class="driver">
+    <div class="wrap driver__row">
+      <span class="driver__label">Drive all four</span>
+      <input class="driver__input" id="q" type="search" value="bird" spellcheck="false"
+             autocomplete="off" aria-label="Search the BIP-39 word list">
+      <span class="driver__samples" id="samples"></span>
+      <span class="driver__count" id="count"></span>
+    </div>
+  </div>
+
+  <!-- =============================== 01 =============================== -->
+  <section class="wrap concept">
+    <div class="concept__head">
+      <div>
+        <span class="concept__id">CONCEPT 01</span>
+        <h2 class="concept__name">Roster</h2>
+        <p class="concept__thesis">
+          CountRoster's own card grid, with words where trackers were. Search field at the
+          top, filter chips under it, results as tappable cards carrying the word's index
+          and its 11 bits.
+        </p>
+      </div>
+      <div class="concept__meta">
+        <div><b>Wins at</b><span>Browsing and learning. Cards give each word room for its
+          index, bits and relations, so the list teaches while you scan it.</span></div>
+        <div><b>Costs</b><span>Low density — six or eight words per screen. Poor for
+          "which of these forty could it be?"</span></div>
+        <div><b>Reuse</b><span>Highest. Header lockup, tab bar, card, chip and button styles
+          transfer from CountRoster essentially unchanged.</span></div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="screen__chrome"><span class="screen__dots"><i></i><i></i><i></i></span> roster — card grid</div>
+      <div class="cr-head">
+        <div class="brand">
+          <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="7" fill="#4ecdc4"></rect>
+            <g fill="#06403b">
+              <rect x="6" y="9" width="12" height="2.6" rx="1.3"></rect>
+              <rect x="6" y="14.7" width="20" height="2.6" rx="1.3"></rect>
+              <rect x="6" y="20.4" width="8" height="2.6" rx="1.3"></rect>
+            </g>
+          </svg>
+          <span class="brand__text">
+            <span class="brand__name">bip39 explorer</span>
+            <span class="brand__version">v1.0.142</span>
+          </span>
+        </div>
+        <nav class="cr-nav"><span class="on">Explore</span><span>Bits</span><span>About</span></nav>
+      </div>
+      <div class="cr-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>
+        </svg>
+        <span class="q w" id="cr-q"></span><span class="caret"></span>
+      </div>
+      <div class="cr-filters" id="cr-filters"></div>
+      <div class="cr-grid" id="cr-grid"></div>
+      <div class="cr-tabs"><span class="on">Explore</span><span>Bits</span><span>Saved</span><span>About</span></div>
+    </div>
+  </section>
+
+  <!-- =============================== 02 =============================== -->
+  <section class="wrap concept">
+    <div class="concept__head">
+      <div>
+        <span class="concept__id">CONCEPT 02</span>
+        <h2 class="concept__name">Console</h2>
+        <p class="concept__thesis">
+          One ranked list, grouped by why each word matched, with a coloured rail per
+          reason. Arrow keys move, Enter pins, and the right pane holds the pinned word's
+          index, bits and unique prefix.
+        </p>
+      </div>
+      <div class="concept__meta">
+        <div><b>Wins at</b><span>Recovery. "Sounds like" and "1–2 edits" get their own
+          labelled blocks instead of being buried among substring hits.</span></div>
+        <div><b>Costs</b><span>Reads as a developer tool. Needs care to stay friendly on a
+          phone, where the detail pane has to become a sheet.</span></div>
+        <div><b>Reuse</b><span>Medium. New row and rail components; keeps the tokens,
+          radius, chips and type scale.</span></div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="screen__chrome"><span class="screen__dots"><i></i><i></i><i></i></span> console — ranked by reason</div>
+      <div class="cn">
+        <div class="cn__list" id="cn-list"></div>
+        <aside class="cn__aside" id="cn-aside"></aside>
+      </div>
+      <div class="cn__keys">
+        <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
+        <span><kbd>⏎</kbd> pin</span>
+        <span><kbd>/</kbd> focus search</span>
+        <span><kbd>esc</kbd> clear</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== 03 =============================== -->
+  <section class="wrap concept">
+    <div class="concept__head">
+      <div>
+        <span class="concept__id">CONCEPT 03</span>
+        <h2 class="concept__name">Field</h2>
+        <p class="concept__thesis">
+          All 2048 words at once, one cell each, in list order. Cells light in their match
+          reason's colour and dim when they drop out — so you watch the candidate set
+          collapse as you type, and see <em>where</em> in the list the survivors sit.
+        </p>
+      </div>
+      <div class="concept__meta">
+        <div><b>Wins at</b><span>Scale and teaching. It makes 2048 a felt quantity, and shows
+          alphabetical clustering — a prefix search lights one contiguous band.</span></div>
+        <div><b>Costs</b><span>Can't be read on its own; it's a companion view, not a result
+          list. Hover-only detail needs a tap equivalent.</span></div>
+        <div><b>Reuse</b><span>Low — entirely new. But it's the one view no other BIP-39
+          tool has.</span></div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="screen__chrome"><span class="screen__dots"><i></i><i></i><i></i></span> field — 2048 cells, 64 × 32</div>
+      <div class="screen__body">
+        <div class="fld__bar">
+          <div class="fld__count" id="fld-count"></div>
+          <div class="fld__hint">Hover or tap a lit cell to read it. Cell order is list order — <span class="mono">abandon</span> top-left, <span class="mono">zoo</span> bottom-right.</div>
+        </div>
+        <div class="fld__grid" id="fld-grid"></div>
+        <div class="fld__peek" id="fld-peek">&nbsp;</div>
+        <ul class="fld__legend legend">
+          <li class="chip chip--start">starts with</li>
+          <li class="chip chip--inside">contains / in order</li>
+          <li class="chip chip--typo">1–2 edits</li>
+          <li class="chip chip--sound">sounds like</li>
+          <li class="chip chip--mean">related meaning</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== 04 =============================== -->
+  <section class="wrap concept">
+    <div class="concept__head">
+      <div>
+        <span class="concept__id">CONCEPT 04</span>
+        <h2 class="concept__name">Orbit</h2>
+        <p class="concept__thesis">
+          The word detail view, not a search view. The best match sits at the centre and
+          its neighbours hang off five spokes — one per relation. Click any neighbour to
+          re-centre on it and walk the list by association.
+        </p>
+      </div>
+      <div class="concept__meta">
+        <div><b>Wins at</b><span>Answering "what else is near this word?" in one glance, and
+          making the relation taxonomy self-explanatory.</span></div>
+        <div><b>Costs</b><span>Layout is fragile with long words and thin screens; below
+          about 480 px it has to fall back to stacked bands.</span></div>
+        <div><b>Reuse</b><span>Low, but it only has to work on one screen — the word page
+          the other three concepts all link into.</span></div>
+      </div>
+    </div>
+
+    <div class="screen">
+      <div class="screen__chrome"><span class="screen__dots"><i></i><i></i><i></i></span> orbit — word detail</div>
+      <div class="screen__body">
+        <svg class="orb" id="orb" viewBox="-262 -172 524 344" role="img" aria-label="Relation map for the selected word"></svg>
+        <p class="orb__hint">Click any word to re-centre.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== engine =============================== -->
+  <section class="wrap section">
+    <h2>How "related" is actually computed</h2>
+    <p>
+      Every rung is cheap enough to run over all 2048 words on each keystroke — the whole
+      pass is a few hundred microseconds, so there is no debounce and no index to keep warm.
+      Only the last rung needs data that isn't derivable from the list itself.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Rung</th><th>What it catches</th><th>Method</th><th>Data needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="chip chip--start">exact</span></td>
+            <td>The word itself.</td>
+            <td>Equality.</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip--start">starts with</span></td>
+            <td>Normal typing. Also the property BIP-39 guarantees: <strong>every word is uniquely identified by its first four letters</strong>, so at four characters this rung returns exactly one word.</td>
+            <td><code>startsWith</code>.</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip--inside">contains</span></td>
+            <td>Half-remembered middles and endings — <code>-tion</code>, <code>-able</code>.</td>
+            <td><code>includes</code>, excluding prefix hits.</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip--inside">letters in order</span></td>
+            <td>Skipped letters and shorthand: <code>abndn</code> → <code>abandon</code>.</td>
+            <td>Subsequence scan, ranked by how tightly packed the run is.</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip--typo">1–2 edits</span></td>
+            <td>Transcription slips — swapped, dropped, doubled or wrong letters. <code>recieve</code> → <code>receive</code>.</td>
+            <td>Damerau–Levenshtein with early cutoff; budget 1 edit up to four characters, 2 beyond.</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip--sound">sounds like</span></td>
+            <td>Dictation and accents: <code>krane</code> → <code>crane</code>, <code>gost</code> → <code>ghost</code>.</td>
+            <td>A phonetic key — English digraph rules, then consonants folded into classes and vowels into one. Words sharing a key sound alike.</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="chip chip--mean">related meaning</span></td>
+            <td>The real ask: <code>bird</code> → <code>eagle</code>, <code>owl</code>, <code>nest</code>, <code>wing</code>. Also lets you search by category name.</td>
+            <td>Anchor on the best letter-match, then return words sharing its topics, most specific topic first. The anchor has to be <em>confident</em> — a strong rung, and it must start like the query or sound like it — or meaning stays silent. That is why <code>ocen</code> reaches the sea but the fragment <code>tion</code> doesn't drag in <code>lion</code>'s animals.</td>
+            <td><strong>A semantic index.</strong> See below.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cols" style="margin-top:1rem">
+      <div class="panel">
+        <h3>What's running on this page</h3>
+        <p>
+          A hand-built topic index: 40 topics covering 677 of the 2048 words. Enough to
+          judge the interaction, not enough to ship. Everything else above is the real
+          algorithm over the real list.
+        </p>
+      </div>
+      <div class="panel">
+        <h3>Proposed for v1</h3>
+        <p>
+          Generate the index offline and commit it: WordNet synsets and hypernyms
+          restricted to the 2048 words, plus the top 12 embedding neighbours per word.
+          Ships as one static JSON of roughly 120 KB — no runtime model, no API.
+        </p>
+      </div>
+      <div class="panel">
+        <h3>Why not just embed at runtime</h3>
+        <p>
+          A model in the browser costs megabytes and a warm-up for a fixed 2048-word
+          vocabulary whose neighbours never change. Precomputing is smaller, instant,
+          reviewable in a diff, and keeps the app fully offline.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== countroster =============================== -->
+  <section class="wrap section">
+    <h2>Taken from CountRoster</h2>
+    <p>
+      Three things carry over wholesale, so this reads as a sibling project rather than a
+      one-off.
+    </p>
+    <div class="cols">
+      <div class="panel">
+        <h3>Design tokens</h3>
+        <div class="swatches">
+          <span class="sw" style="background:#4ecdc4" title="--primary #4ecdc4"></span>
+          <span class="sw" style="background:#06403b" title="--primary-ink #06403b"></span>
+          <span class="sw" style="background:#fafafa" title="--bg #fafafa"></span>
+          <span class="sw" style="background:#ffffff" title="--surface #ffffff"></span>
+          <span class="sw" style="background:#e5e7eb" title="--border #e5e7eb"></span>
+          <span class="sw" style="background:#18181b" title="dark --bg #18181b"></span>
+          <span class="sw" style="background:#232327" title="dark --surface #232327"></span>
+        </div>
+        <p>
+          The same custom-property block: teal <code>#4ecdc4</code> on <code>#fafafa</code>,
+          12 px radius, the two-step shadow, <code>prefers-color-scheme</code> dark, BEM-ish
+          class names, system UI type. The screens above use those values verbatim.
+        </p>
+        <p>
+          One addition this subject needs: monospace for every word and number, because
+          the words are material to be compared letter by letter — and the five relation
+          hues, which are information, not decoration.
+        </p>
+      </div>
+      <div class="panel">
+        <h3>Versioning</h3>
+        <pre>v1.0.142
+ │ │  └ git commit count
+ │ └── minor  (source constant)
+ └──── major  (source constant)</pre>
+        <p>
+          CountRoster's scheme exactly: <code>vMAJOR.MINOR.&lt;commit count&gt;</code>,
+          assembled by one script and inlined at build time, shown under the wordmark in
+          tabular monospace. A build without git reports patch <code>0</code>, and a
+          shallow clone is refused rather than allowed to lie.
+        </p>
+      </div>
+      <div class="panel">
+        <h3>QuickStart</h3>
+        <pre>curl -fsSL https://raw.\
+githubusercontent.com/chinmay28/\
+bip39-explorer/main/scripts/\
+quickstart.sh | sudo bash</pre>
+        <p>
+          Same shape: root check, dedicated system user, hardened systemd unit, health
+          poll after restart with rollback to the previous binary, re-runnable to upgrade,
+          <code>PORT</code>/<code>HOST</code>/<code>_PREFIX</code> overrides.
+        </p>
+        <p>
+          Simpler in one way — this app has no database, so there is nothing to snapshot
+          and the backup/restore half of the script drops out.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== recommendation =============================== -->
+  <section class="wrap section">
+    <div class="rec">
+      <h2>Recommendation</h2>
+      <p style="max-width:66ch;margin:0">
+        Don't pick one. They aren't four apps — they're four views of one engine, and each
+        covers a different pressure. Ship them as one screen with a view switch.
+      </p>
+      <ol>
+        <li><strong>Roster is the shell.</strong> Header lockup, tab bar and card grid come
+          across from CountRoster, so the app looks finished on day one and the default
+          view is the friendly one.</li>
+        <li><strong>Console is the results list</strong> behind a density toggle. Same data,
+          same reason colours, ten times the words per screen — and it's the view that
+          serves seed recovery.</li>
+        <li><strong>Field is a collapsible strip</strong> above the results, off by default.
+          It costs one line of state and it's the thing people will screenshot.</li>
+        <li><strong>Orbit is the word page</strong> every card and row links into, with a
+          stacked-band fallback under 480 px.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="wrap section">
+    <h2>Open questions before I build</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Question</th><th>My default if you don't care</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Packaging — does this need CountRoster's Go binary and systemd unit, or is it a static bundle you drop on any host?</td>
+            <td>Both: a static bundle, plus a tiny Go binary that embeds it, so the QuickStart story survives. No database, no API.</td>
+          </tr>
+          <tr>
+            <td>Stack — match CountRoster's Vite + React + TypeScript, or keep it dependency-free?</td>
+            <td>Vite + React + TypeScript, mirroring <code>apps/web</code>, with Vitest for the engine.</td>
+          </tr>
+          <tr>
+            <td>Semantic index — WordNet, embeddings, or a curated topic list you can edit by hand?</td>
+            <td>WordNet plus embeddings, generated by a committed script, output committed as JSON so it's reviewable.</td>
+          </tr>
+          <tr>
+            <td>Scope of the bits view — index and binary only, or the full checksum explainer?</td>
+            <td>Index, hex and 11 bits per word. No phrase-level entropy tooling, which would mean a field people put real words in.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="wrap foot">
+    Word list: <code>bip-0039/english.txt</code>, 2048 words, sha256
+    <code>2f5eed53…3b24dbda</code> — verified against the BIP text.
+    Concepts 01–04 run the same engine over the full list; the topic index is a 677-word
+    sample. Rendered for chinmay28/bip39-explorer.
+  </footer>
+</main>
+
+<script>
+const WORDS = "abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire across act action actor actress actual adapt add addict address adjust admit adult advance advice aerobic affair afford afraid again age agent agree ahead aim air airport aisle alarm album alcohol alert alien all alley allow almost alone alpha already also alter always amateur amazing among amount amused analyst anchor ancient anger angle angry animal ankle announce annual another answer antenna antique anxiety any apart apology appear apple approve april arch arctic area arena argue arm armed armor army around arrange arrest arrive arrow art artefact artist artwork ask aspect assault asset assist assume asthma athlete atom attack attend attitude attract auction audit august aunt author auto autumn average avocado avoid awake aware away awesome awful awkward axis baby bachelor bacon badge bag balance balcony ball bamboo banana banner bar barely bargain barrel base basic basket battle beach bean beauty because become beef before begin behave behind believe below belt bench benefit best betray better between beyond bicycle bid bike bind biology bird birth bitter black blade blame blanket blast bleak bless blind blood blossom blouse blue blur blush board boat body boil bomb bone bonus book boost border boring borrow boss bottom bounce box boy bracket brain brand brass brave bread breeze brick bridge brief bright bring brisk broccoli broken bronze broom brother brown brush bubble buddy budget buffalo build bulb bulk bullet bundle bunker burden burger burst bus business busy butter buyer buzz cabbage cabin cable cactus cage cake call calm camera camp can canal cancel candy cannon canoe canvas canyon capable capital captain car carbon card cargo carpet carry cart case cash casino castle casual cat catalog catch category cattle caught cause caution cave ceiling celery cement census century cereal certain chair chalk champion change chaos chapter charge chase chat cheap check cheese chef cherry chest chicken chief child chimney choice choose chronic chuckle chunk churn cigar cinnamon circle citizen city civil claim clap clarify claw clay clean clerk clever click client cliff climb clinic clip clock clog close cloth cloud clown club clump cluster clutch coach coast coconut code coffee coil coin collect color column combine come comfort comic common company concert conduct confirm congress connect consider control convince cook cool copper copy coral core corn correct cost cotton couch country couple course cousin cover coyote crack cradle craft cram crane crash crater crawl crazy cream credit creek crew cricket crime crisp critic crop cross crouch crowd crucial cruel cruise crumble crunch crush cry crystal cube culture cup cupboard curious current curtain curve cushion custom cute cycle dad damage damp dance danger daring dash daughter dawn day deal debate debris decade december decide decline decorate decrease deer defense define defy degree delay deliver demand demise denial dentist deny depart depend deposit depth deputy derive describe desert design desk despair destroy detail detect develop device devote diagram dial diamond diary dice diesel diet differ digital dignity dilemma dinner dinosaur direct dirt disagree discover disease dish dismiss disorder display distance divert divide divorce dizzy doctor document dog doll dolphin domain donate donkey donor door dose double dove draft dragon drama drastic draw dream dress drift drill drink drip drive drop drum dry duck dumb dune during dust dutch duty dwarf dynamic eager eagle early earn earth easily east easy echo ecology economy edge edit educate effort egg eight either elbow elder electric elegant element elephant elevator elite else embark embody embrace emerge emotion employ empower empty enable enact end endless endorse enemy energy enforce engage engine enhance enjoy enlist enough enrich enroll ensure enter entire entry envelope episode equal equip era erase erode erosion error erupt escape essay essence estate eternal ethics evidence evil evoke evolve exact example excess exchange excite exclude excuse execute exercise exhaust exhibit exile exist exit exotic expand expect expire explain expose express extend extra eye eyebrow fabric face faculty fade faint faith fall false fame family famous fan fancy fantasy farm fashion fat fatal father fatigue fault favorite feature february federal fee feed feel female fence festival fetch fever few fiber fiction field figure file film filter final find fine finger finish fire firm first fiscal fish fit fitness fix flag flame flash flat flavor flee flight flip float flock floor flower fluid flush fly foam focus fog foil fold follow food foot force forest forget fork fortune forum forward fossil foster found fox fragile frame frequent fresh friend fringe frog front frost frown frozen fruit fuel fun funny furnace fury future gadget gain galaxy gallery game gap garage garbage garden garlic garment gas gasp gate gather gauge gaze general genius genre gentle genuine gesture ghost giant gift giggle ginger giraffe girl give glad glance glare glass glide glimpse globe gloom glory glove glow glue goat goddess gold good goose gorilla gospel gossip govern gown grab grace grain grant grape grass gravity great green grid grief grit grocery group grow grunt guard guess guide guilt guitar gun gym habit hair half hammer hamster hand happy harbor hard harsh harvest hat have hawk hazard head health heart heavy hedgehog height hello helmet help hen hero hidden high hill hint hip hire history hobby hockey hold hole holiday hollow home honey hood hope horn horror horse hospital host hotel hour hover hub huge human humble humor hundred hungry hunt hurdle hurry hurt husband hybrid ice icon idea identify idle ignore ill illegal illness image imitate immense immune impact impose improve impulse inch include income increase index indicate indoor industry infant inflict inform inhale inherit initial inject injury inmate inner innocent input inquiry insane insect inside inspire install intact interest into invest invite involve iron island isolate issue item ivory jacket jaguar jar jazz jealous jeans jelly jewel job join joke journey joy judge juice jump jungle junior junk just kangaroo keen keep ketchup key kick kid kidney kind kingdom kiss kit kitchen kite kitten kiwi knee knife knock know lab label labor ladder lady lake lamp language laptop large later latin laugh laundry lava law lawn lawsuit layer lazy leader leaf learn leave lecture left leg legal legend leisure lemon lend length lens leopard lesson letter level liar liberty library license life lift light like limb limit link lion liquid list little live lizard load loan lobster local lock logic lonely long loop lottery loud lounge love loyal lucky luggage lumber lunar lunch luxury lyrics machine mad magic magnet maid mail main major make mammal man manage mandate mango mansion manual maple marble march margin marine market marriage mask mass master match material math matrix matter maximum maze meadow mean measure meat mechanic medal media melody melt member memory mention menu mercy merge merit merry mesh message metal method middle midnight milk million mimic mind minimum minor minute miracle mirror misery miss mistake mix mixed mixture mobile model modify mom moment monitor monkey monster month moon moral more morning mosquito mother motion motor mountain mouse move movie much muffin mule multiply muscle museum mushroom music must mutual myself mystery myth naive name napkin narrow nasty nation nature near neck need negative neglect neither nephew nerve nest net network neutral never news next nice night noble noise nominee noodle normal north nose notable note nothing notice novel now nuclear number nurse nut oak obey object oblige obscure observe obtain obvious occur ocean october odor off offer office often oil okay old olive olympic omit once one onion online only open opera opinion oppose option orange orbit orchard order ordinary organ orient original orphan ostrich other outdoor outer output outside oval oven over own owner oxygen oyster ozone pact paddle page pair palace palm panda panel panic panther paper parade parent park parrot party pass patch path patient patrol pattern pause pave payment peace peanut pear peasant pelican pen penalty pencil people pepper perfect permit person pet phone photo phrase physical piano picnic picture piece pig pigeon pill pilot pink pioneer pipe pistol pitch pizza place planet plastic plate play please pledge pluck plug plunge poem poet point polar pole police pond pony pool popular portion position possible post potato pottery poverty powder power practice praise predict prefer prepare present pretty prevent price pride primary print priority prison private prize problem process produce profit program project promote proof property prosper protect proud provide public pudding pull pulp pulse pumpkin punch pupil puppy purchase purity purpose purse push put puzzle pyramid quality quantum quarter question quick quit quiz quote rabbit raccoon race rack radar radio rail rain raise rally ramp ranch random range rapid rare rate rather raven raw razor ready real reason rebel rebuild recall receive recipe record recycle reduce reflect reform refuse region regret regular reject relax release relief rely remain remember remind remove render renew rent reopen repair repeat replace report require rescue resemble resist resource response result retire retreat return reunion reveal review reward rhythm rib ribbon rice rich ride ridge rifle right rigid ring riot ripple risk ritual rival river road roast robot robust rocket romance roof rookie room rose rotate rough round route royal rubber rude rug rule run runway rural sad saddle sadness safe sail salad salmon salon salt salute same sample sand satisfy satoshi sauce sausage save say scale scan scare scatter scene scheme school science scissors scorpion scout scrap screen script scrub sea search season seat second secret section security seed seek segment select sell seminar senior sense sentence series service session settle setup seven shadow shaft shallow share shed shell sheriff shield shift shine ship shiver shock shoe shoot shop short shoulder shove shrimp shrug shuffle shy sibling sick side siege sight sign silent silk silly silver similar simple since sing siren sister situate six size skate sketch ski skill skin skirt skull slab slam sleep slender slice slide slight slim slogan slot slow slush small smart smile smoke smooth snack snake snap sniff snow soap soccer social sock soda soft solar soldier solid solution solve someone song soon sorry sort soul sound soup source south space spare spatial spawn speak special speed spell spend sphere spice spider spike spin spirit split spoil sponsor spoon sport spot spray spread spring spy square squeeze squirrel stable stadium staff stage stairs stamp stand start state stay steak steel stem step stereo stick still sting stock stomach stone stool story stove strategy street strike strong struggle student stuff stumble style subject submit subway success such sudden suffer sugar suggest suit summer sun sunny sunset super supply supreme sure surface surge surprise surround survey suspect sustain swallow swamp swap swarm swear sweet swift swim swing switch sword symbol symptom syrup system table tackle tag tail talent talk tank tape target task taste tattoo taxi teach team tell ten tenant tennis tent term test text thank that theme then theory there they thing this thought three thrive throw thumb thunder ticket tide tiger tilt timber time tiny tip tired tissue title toast tobacco today toddler toe together toilet token tomato tomorrow tone tongue tonight tool tooth top topic topple torch tornado tortoise toss total tourist toward tower town toy track trade traffic tragic train transfer trap trash travel tray treat tree trend trial tribe trick trigger trim trip trophy trouble truck true truly trumpet trust truth try tube tuition tumble tuna tunnel turkey turn turtle twelve twenty twice twin twist two type typical ugly umbrella unable unaware uncle uncover under undo unfair unfold unhappy uniform unique unit universe unknown unlock until unusual unveil update upgrade uphold upon upper upset urban urge usage use used useful useless usual utility vacant vacuum vague valid valley valve van vanish vapor various vast vault vehicle velvet vendor venture venue verb verify version very vessel veteran viable vibrant vicious victory video view village vintage violin virtual virus visa visit visual vital vivid vocal voice void volcano volume vote voyage wage wagon wait walk wall walnut want warfare warm warrior wash wasp waste water wave way wealth weapon wear weasel weather web wedding weekend weird welcome west wet whale what wheat wheel when where whip whisper wide width wife wild will win window wine wing wink winner winter wire wisdom wise wish witness wolf woman wonder wood wool word work world worry worth wrap wreck wrestle wrist write wrong yard year yellow you young youth zebra zero zone zoo".split(" ");
+const THEMES = {
+  animal: "animal bird cat dog horse tiger lion wolf monkey rabbit mouse snake fish whale dolphin turtle frog eagle hen duck goose pig goat deer fox squirrel spider cricket lobster shrimp salmon tuna donkey elephant giraffe zebra kangaroo panda puppy kitten pet zoo cattle chicken crane hawk pigeon parrot fly dinosaur dragon lizard",
+  bird: "bird eagle hen duck goose crane hawk pigeon parrot chicken wing nest fly egg",
+  color: "color blue green yellow orange pink brown black silver gold bronze copper ivory tone",
+  body: "body head face eye nose tooth tongue neck shoulder arm elbow wrist hand finger thumb chest heart stomach hip leg knee ankle foot toe skin bone blood brain muscle hair skull",
+  family: "family mother father parent child kid baby daughter brother sister uncle aunt cousin nephew wife husband marriage wedding twin orphan",
+  money: "cash coin wealth rich credit loan price cost fee income budget invest profit capital market trade sell purchase wage fortune gold silver asset",
+  crypto: "coin token key secret seed phrase address verify sign trust private public",
+  tech: "laptop screen monitor mouse device machine robot engine motor wire cable network online digital code program system client file memory radio phone camera video",
+  nature: "nature forest tree wood leaf flower grass field meadow garden seed earth stone mountain hill valley canyon desert jungle river lake ocean sea beach island cave cliff volcano",
+  weather: "weather rain snow thunder breeze cloud fog frost ice sun sunny sunset warm cool dry wet season winter summer spring autumn",
+  water: "water ocean sea river lake pond wave tide rain liquid drink swim boat ship sail anchor harbor beach island fish salmon whale dolphin coral",
+  food: "food lunch dinner bread rice soup salad meat beef chicken fish egg cheese milk butter sugar salt pepper spice sauce fruit apple banana orange lemon grape cherry pear potato tomato onion garlic bean corn nut cake candy honey coffee juice wine",
+  emotion: "emotion feel happy sad angry afraid joy love hope despair calm proud guilt lonely grief worry relief surprise",
+  motion: "move run walk jump climb crawl swim fly ride drive travel journey trip come arrive leave enter exit hurry slow speed race chase follow escape flee return turn spin rotate slide glide fall lift drop push pull carry",
+  time: "time clock hour minute second day night morning today tomorrow month year decade century age era moment early soon never always often season",
+  tool: "tool hammer drill knife blade ladder brush glue tape measure machine engine valve",
+  building: "home room door window wall floor ceiling roof kitchen garage cabin castle tower palace school hospital hotel office shop bridge tunnel fence gate yard",
+  clothing: "dress skirt jacket sock shoe hat glove belt fabric cloth cotton wool silk wear uniform",
+  music: "music song sing sound note melody rhythm drum guitar piano violin trumpet horn concert stage dance voice album record play loud",
+  war: "battle army soldier weapon gun sword shield armor bomb attack enemy victory peace siege rifle cannon",
+  space: "space universe galaxy planet moon sun orbit rocket gravity solar lunar night",
+  law: "law legal judge trial crime police arrest prison innocent evidence witness rule license permit penalty",
+  health: "health doctor nurse hospital pill patient disease illness sick injury treat clinic virus fever symptom diet exercise fitness",
+  school: "school teach student learn lesson book write pencil pen paper page library test degree science math history language",
+  work: "work job office boss business company team project task staff hire fire retire labor effort duty skill trade craft",
+  transport: "car truck bus train bike bicycle boat ship taxi subway road street bridge tunnel drive ride travel wheel engine fuel gas ticket airport",
+  speech: "speak talk say tell word language voice whisper argue debate ask answer question explain describe story news report announce",
+  size: "large huge giant small tiny little short long wide narrow shallow heavy light size scale measure amount volume",
+  light: "light bright shadow shine glow flash flame fire lamp torch sun mirror glass reflect color",
+  metal: "metal iron steel gold silver copper bronze brass",
+  game: "game play toy puzzle card dice ball sport team win match field stadium race prize trophy champion coach fun",
+  art: "art artist draw sketch canvas color design pattern craft photo picture image gallery museum style beauty",
+  mind: "mind thought idea memory remember forget dream believe know learn wisdom logic reason genius smart clever wise",
+  plant: "tree flower leaf grass seed stem garden farm crop harvest grain wheat corn rice blossom",
+  insect: "insect fly spider cricket wasp mosquito swarm",
+  weapon: "weapon gun rifle sword knife blade bomb arrow shield armor cannon",
+  cook: "cook boil roast oven stove kitchen chef recipe dish plate spoon fork knife cup glass",
+  direction: "north south east west left right forward middle side edge top bottom front inside outside near",
+  number: "number zero one two three six seven eight ten hundred million half double math add total amount",
+};
+
+/* ------------------------------------------------------------------ *
+ * Engine
+ * ------------------------------------------------------------------ */
+
+/* Consonants folded into classes, every vowel into "A". The digraph
+   fixes above the fold matter more than the classes: English spells the
+   same sound half a dozen ways, and dictation errors follow sound. */
+const CLS = {
+  a: 'A', e: 'A', i: 'A', o: 'A', u: 'A', y: 'A',
+  b: 'B', p: 'B', f: 'F', v: 'F', d: 'D', t: 'D',
+  g: 'K', k: 'K', c: 'K', q: 'K', j: 'J',
+  s: 'S', z: 'S', x: 'S', m: 'N', n: 'N',
+  l: 'L', r: 'R', w: 'W', h: '',
+};
+
+function soundKey(w) {
+  let s = w
+    .replace(/^gh/, 'g').replace(/gh/g, '')
+    .replace(/ph/g, 'f').replace(/ck/g, 'k')
+    .replace(/c(?=[eiy])/g, 's')
+    .replace(/^kn/, 'n').replace(/^wr/, 'r').replace(/mb$/, 'm');
+  if (s.length > 3) s = s.replace(/e$/, '');       // silent final e
+  s = s.replace(/(.)\1+/g, '$1');                  // doubles
+  let out = '';
+  for (const ch of s) {
+    const c = CLS[ch];
+    if (c && c !== out[out.length - 1]) out += c;
+  }
+  return out;
+}
+
+/* Damerau–Levenshtein with a cutoff: bail as soon as the best cell in a
+   row exceeds the budget, which is most of them. */
+function editDistance(a, b, cap) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > cap) return cap + 1;
+  let prev2 = null, prev = new Array(n + 1), cur = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    cur[0] = i;
+    let best = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        v = Math.min(v, prev2[j - 2] + 1);
+      }
+      cur[j] = v;
+      if (v < best) best = v;
+    }
+    if (best > cap) return cap + 1;
+    prev2 = prev;
+    prev = cur.slice();
+  }
+  return prev[n];
+}
+
+/* Subsequence match, scored by span: the tighter the letters sit
+   together in the word, the better the hit. */
+function subsequenceSpan(q, w) {
+  let i = 0, first = -1, last = -1;
+  for (let k = 0; k < w.length && i < q.length; k++) {
+    if (w[k] === q[i]) {
+      if (first < 0) first = k;
+      last = k;
+      i++;
+    }
+  }
+  return i === q.length ? last - first : -1;
+}
+
+const INDEX = new Map(WORDS.map((w, i) => [w, i]));
+const SOUND = new Map();
+WORDS.forEach((w) => {
+  const k = soundKey(w);
+  if (!SOUND.has(k)) SOUND.set(k, []);
+  SOUND.get(k).push(w);
+});
+
+/* topic → words, and its inverse. Topic size doubles as specificity:
+   sharing "insect" says more than sharing "animal". */
+const TOPIC_WORDS = {};
+const WORD_TOPICS = new Map();
+for (const [topic, list] of Object.entries(THEMES)) {
+  const ws = list.split(' ');
+  TOPIC_WORDS[topic] = ws;
+  ws.forEach((w) => {
+    if (!WORD_TOPICS.has(w)) WORD_TOPICS.set(w, []);
+    WORD_TOPICS.get(w).push(topic);
+  });
+}
+
+const REASONS = {
+  exact:  { label: 'Exact', tone: 'start' },
+  prefix: { label: 'Starts with', tone: 'start' },
+  infix:  { label: 'Contains', tone: 'inside' },
+  loose:  { label: 'Letters in order', tone: 'inside' },
+  typo:   { label: '1–2 edits away', tone: 'typo' },
+  sound:  { label: 'Sounds like', tone: 'sound' },
+  mean:   { label: 'Related meaning', tone: 'mean' },
+};
+/* Rung order is also rank order, strongest claim first. "1–2 edits" beats
+   "letters in order": one wrong keystroke is a far tighter statement about
+   the word than four letters found scattered across it. */
+const ORDER = ['exact', 'prefix', 'infix', 'typo', 'sound', 'loose', 'mean'];
+
+/** How many leading letters two strings share. */
+function commonPrefix(a, b) {
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return i;
+}
+
+function search(raw) {
+  const q = raw.toLowerCase().replace(/[^a-z]/g, '');
+  const hits = new Map();                     // word → { word, reason, why, rank }
+  const add = (w, reason, why, rank) => {
+    if (!hits.has(w)) hits.set(w, { word: w, reason, why, rank });
+  };
+
+  if (!q) return { q, buckets: [], hits, anchor: null };
+
+  const cap = q.length <= 4 ? 1 : 2;
+
+  for (const w of WORDS) {
+    if (w === q) add(w, 'exact', 'the word itself', 0);
+    else if (w.startsWith(q)) add(w, 'prefix', `starts with “${q}”`, 1 + (w.length - q.length) / 64);
+  }
+  for (const w of WORDS) {
+    if (!hits.has(w) && w.includes(q)) add(w, 'infix', `contains “${q}”`, 3);
+  }
+  if (q.length >= 3) {
+    const near = [];
+    for (const w of WORDS) {
+      if (hits.has(w)) continue;
+      const d = editDistance(q, w, cap);
+      if (d <= cap) near.push([w, d]);
+    }
+    near.sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]));
+    near.forEach(([w, d]) => add(w, 'typo', `${d} edit${d === 1 ? '' : 's'} from “${q}”`, 2 + (d - 1)));
+  }
+  const qk = soundKey(q);
+  for (const w of (SOUND.get(qk) || [])) {
+    add(w, 'sound', `same sound key ${qk}`, 3.5);
+  }
+  if (q.length >= 3) {
+    const loose = [];
+    for (const w of WORDS) {
+      if (hits.has(w)) continue;
+      const span = subsequenceSpan(q, w);
+      if (span >= 0) loose.push([w, span]);
+    }
+    loose.sort((a, b) => a[1] - b[1] || a[0].length - b[0].length);
+    loose.slice(0, 24).forEach(([w], k) => add(w, 'loose', `${q.split('').join('·')} in order`, 4 + k / 64));
+  }
+
+  /* Meaning hangs off an anchor, and the anchor has to be *confident* —
+     otherwise a fragment like "tion" would anchor on "lion" (one edit)
+     and flood the results with animals. Confident means: a strong rung
+     (exact, prefix, or a single edit) AND the word either starts the way
+     the query does or sounds exactly like it. That is what separates
+     "ocen"→ocean and "krane"→crane from "tion"→lion. */
+  const confident = [...hits.values()]
+    .filter((h) => h.rank <= 2.01 && (commonPrefix(q, h.word) >= 2 || soundKey(h.word) === qk))
+    .sort((a, b) => a.rank - b.rank
+      || (soundKey(b.word) === qk) - (soundKey(a.word) === qk)
+      || commonPrefix(q, b.word) - commonPrefix(q, a.word)
+      || Math.abs(a.word.length - q.length) - Math.abs(b.word.length - q.length));
+  const anchor = confident.length ? confident[0].word : null;
+
+  if (TOPIC_WORDS[q]) {
+    TOPIC_WORDS[q].forEach((w) => add(w, 'mean', `in topic “${q}”`, 5));
+  }
+  if (anchor && WORD_TOPICS.has(anchor)) {
+    const topics = WORD_TOPICS.get(anchor)
+      .slice()
+      .sort((a, b) => TOPIC_WORDS[a].length - TOPIC_WORDS[b].length);
+    for (const t of topics) {
+      for (const w of TOPIC_WORDS[t]) add(w, 'mean', `${t}, like “${anchor}”`, 5);
+    }
+  }
+
+  const buckets = ORDER
+    .map((r) => ({ reason: r, words: [...hits.values()].filter((h) => h.reason === r) }))
+    .filter((b) => b.words.length);
+  return { q, buckets, hits, anchor };
+}
+
+/* ------------------------------------------------------------------ *
+ * Shared state
+ * ------------------------------------------------------------------ */
+const bits = (i) => i.toString(2).padStart(11, '0').replace(/(\d{4})(\d{4})(\d{3})/, '$1 $2 $3');
+const el = (id) => document.getElementById(id);
+
+const state = { query: 'bird', result: null, pinned: null };
+
+const SAMPLES = [
+  ['bird', 'meaning'],
+  ['ocen', 'typo'],
+  ['krane', 'sound'],
+  ['dscvr', 'in order'],
+  ['-tion', 'contains'],
+  ['sil', 'prefix'],
+];
+
+function esc(s) {
+  return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+/* Highlight the literal query inside a word, when it is literally there. */
+function markup(word, q) {
+  const at = q ? word.indexOf(q) : -1;
+  if (at < 0) return esc(word);
+  return esc(word.slice(0, at)) + '<mark>' + esc(word.slice(at, at + q.length)) + '</mark>' + esc(word.slice(at + q.length));
+}
+
+function setQuery(q, opts) {
+  state.query = q;
+  if (!opts || !opts.fromInput) el('q').value = q;
+  state.pinned = null;
+  render();
+}
+
+/* ------------------------------------------------------------------ *
+ * 01 Roster
+ * ------------------------------------------------------------------ */
+function renderRoster(res) {
+  el('cr-q').textContent = state.query || 'search 2048 words';
+
+  const counts = res.buckets.map((b) => `<span class="chip chip--${REASONS[b.reason].tone}">${REASONS[b.reason].label} ${b.words.length}</span>`);
+  el('cr-filters').innerHTML = counts.join('') || '<span class="chip chip--inside">no matches</span>';
+
+  const top = res.buckets.flatMap((b) => b.words).slice(0, 8);
+  el('cr-grid').innerHTML = top.map((h) => {
+    const i = INDEX.get(h.word);
+    const tone = REASONS[h.reason].tone;
+    const topics = (WORD_TOPICS.get(h.word) || []).slice(0, 2);
+    return `<button class="cr-card" style="--rail:var(--rel-${tone})" data-word="${h.word}">
+      <span class="cr-card__top">
+        <span class="cr-card__word">${markup(h.word, res.q)}</span>
+        <span class="idx">#${String(i).padStart(4, '0')}</span>
+      </span>
+      <span class="cr-card__bits">${bits(i)} &nbsp;·&nbsp; ${h.word.slice(0, 4)}▸</span>
+      <span class="cr-card__rel">
+        <span class="chip chip--${tone}">${REASONS[h.reason].label}</span>
+        ${topics.map((t) => `<span class="chip chip--mean">${t}</span>`).join('')}
+      </span>
+    </button>`;
+  }).join('') || '<p class="idx">Nothing matches. Try fewer letters.</p>';
+}
+
+/* ------------------------------------------------------------------ *
+ * 02 Console
+ * ------------------------------------------------------------------ */
+function renderConsole(res) {
+  const rows = [];
+  for (const b of res.buckets) {
+    const tone = REASONS[b.reason].tone;
+    rows.push(`<div class="cn__group" style="color:var(--rel-${tone})">${REASONS[b.reason].label}<span class="idx" style="letter-spacing:0">${b.words.length}</span></div>`);
+    for (const h of b.words.slice(0, 14)) {
+      const i = INDEX.get(h.word);
+      const sel = h.word === (state.pinned || res.buckets[0].words[0].word) ? ' sel' : '';
+      rows.push(`<button class="cn__row${sel}" data-word="${h.word}">
+        <span class="cn__rail" style="background:var(--rel-${tone})"></span>
+        <span><span class="cn__word">${markup(h.word, res.q)}</span>
+          <span class="cn__why"> — ${esc(h.why)}</span></span>
+        <span class="idx">#${String(i).padStart(4, '0')}</span>
+      </button>`);
+    }
+    if (b.words.length > 14) {
+      rows.push(`<div class="cn__group" style="color:var(--s-muted);font-weight:500">+ ${b.words.length - 14} more</div>`);
+    }
+  }
+  el('cn-list').innerHTML = rows.join('') || '<div class="cn__group">no matches</div>';
+
+  const word = state.pinned || (res.buckets[0] && res.buckets[0].words[0].word);
+  if (!word) { el('cn-aside').innerHTML = ''; return; }
+  const i = INDEX.get(word);
+  const topics = WORD_TOPICS.get(word) || [];
+  el('cn-aside').innerHTML = `
+    <div class="cn__big">${esc(word)}</div>
+    <dl class="cn__facts">
+      <dt>index</dt><dd>${i} of 2047</dd>
+      <dt>11 bits</dt><dd>${bits(i)}</dd>
+      <dt>hex</dt><dd>0x${i.toString(16).toUpperCase().padStart(3, '0')}</dd>
+      <dt>prefix</dt><dd>${esc(word.slice(0, 4))}</dd>
+      <dt>sound</dt><dd>${soundKey(word)}</dd>
+      <dt>topics</dt><dd>${topics.length ? topics.join(', ') : '—'}</dd>
+    </dl>
+    <p class="cn__why" style="margin:0.75rem 0 0">
+      Those four letters identify this word uniquely — no other entry in the list
+      begins <span class="mono">${esc(word.slice(0, 4))}</span>.
+    </p>`;
+}
+
+/* ------------------------------------------------------------------ *
+ * 03 Field
+ * ------------------------------------------------------------------ */
+const cells = [];
+(function buildField() {
+  const grid = el('fld-grid');
+  const frag = document.createDocumentFragment();
+  WORDS.forEach((w, i) => {
+    const c = document.createElement('span');
+    c.className = 'fld__cell';
+    c.dataset.i = i;
+    frag.appendChild(c);
+    cells.push(c);
+  });
+  grid.appendChild(frag);
+})();
+
+function renderField(res) {
+  for (let i = 0; i < WORDS.length; i++) {
+    const h = res.hits.get(WORDS[i]);
+    const c = cells[i];
+    if (h) {
+      c.className = 'fld__cell on';
+      c.style.background = `var(--rel-${REASONS[h.reason].tone})`;
+    } else {
+      c.className = 'fld__cell';
+      c.style.background = '';
+    }
+  }
+  const n = res.hits.size;
+  el('fld-count').innerHTML = `${n} <small>of 2048 remain</small>`;
+}
+
+el('fld-grid').addEventListener('pointerover', (e) => {
+  const i = e.target.dataset && e.target.dataset.i;
+  if (i === undefined) return;
+  const w = WORDS[+i];
+  const h = state.result.hits.get(w);
+  el('fld-peek').innerHTML = h
+    ? `<b>${esc(w)}</b> — #${i} · ${REASONS[h.reason].label.toLowerCase()} · ${esc(h.why)}`
+    : `<span style="opacity:.6">${esc(w)} — #${i} · filtered out</span>`;
+});
+el('fld-grid').addEventListener('click', (e) => {
+  const i = e.target.dataset && e.target.dataset.i;
+  if (i !== undefined) setQuery(WORDS[+i]);
+});
+
+/* ------------------------------------------------------------------ *
+ * 04 Orbit
+ * ------------------------------------------------------------------ */
+/* Claim order: the strongest relation gets first refusal on a word, and
+   whichever spokes survive are then spread evenly around the centre. Most
+   words have three or four live relations, not five, so fixed angles would
+   leave a lopsided map with a hole where the missing one should be. */
+const SPOKES = ['mean', 'typo', 'sound', 'infix', 'prefix'];
+
+/* Angles per spoke count, tuned so each arrangement fills the landscape
+   frame instead of stacking everything in a column. */
+const SPOKE_ANGLES = {
+  1: [0],
+  2: [-30, 150],
+  3: [-90, 30, 150],
+  4: [-45, 45, 135, 225],
+  5: [-90, -18, 54, 126, 198],
+};
+
+function renderOrbit(res) {
+  const svg = el('orb');
+  const center = state.pinned || (res.buckets[0] && res.buckets[0].words[0].word);
+  if (!center) { svg.innerHTML = ''; return; }
+
+  /* Recompute the neighbourhood from the centre word itself, so the map
+     describes the word rather than the query that found it. */
+  const sub = search(center);
+  const parts = [];
+  const CW = 7.55;   /* monospace advance at 12.5px */
+
+  parts.push(`<g>
+    <rect x="-70" y="-30" width="140" height="60" rx="14"
+      fill="var(--rel-start-bg)" stroke="var(--rel-start)" stroke-width="1.5"></rect>
+    <text class="orb__center" x="0" y="0" text-anchor="middle" fill="var(--rel-start)">${esc(center)}</text>
+    <text x="0" y="19" text-anchor="middle" fill="var(--s-muted)"
+      style="font-family:var(--mono);font-size:9.5px">#${String(INDEX.get(center)).padStart(4, '0')} · ${bits(INDEX.get(center))}</text>
+  </g>`);
+
+  /* One word appears once, on its strongest spoke — "birth" is both a
+     sound-alike and a prefix cousin of "bird", and showing it twice makes
+     the map look noisier than the relationship is. */
+  const seen = new Set([center]);
+
+  const live = [];
+  for (const reason of SPOKES) {
+    const bucket = sub.buckets.find((b) => b.reason === reason);
+    let words = bucket ? bucket.words.map((h) => h.word) : [];
+    if (reason === 'prefix') {
+      /* Prefix from the centre word is just itself, so widen it to the
+         alphabetical family: everything sharing the first three letters. */
+      words = WORDS.filter((w) => w.startsWith(center.slice(0, 3)));
+    }
+    words = words.filter((w) => !seen.has(w)).slice(0, 3);
+    if (!words.length) continue;
+    words.forEach((w) => seen.add(w));
+    live.push({ reason, words });
+  }
+
+  live.forEach((spoke, s) => {
+    const words = spoke.words;
+    const tone = REASONS[spoke.reason].tone;
+    const rad = (SPOKE_ANGLES[live.length][s] * Math.PI) / 180;
+    const cx = Math.cos(rad) * 150;
+    const cy = Math.sin(rad) * 108;
+
+    parts.push(`<line x1="${Math.cos(rad) * 74}" y1="${Math.sin(rad) * 34}"
+      x2="${cx * 0.78}" y2="${cy * 0.78}"
+      stroke="var(--rel-${tone})" stroke-width="1.25" stroke-dasharray="3 3" opacity="0.65"></line>`);
+    parts.push(`<text class="orb__label" x="${cx}" y="${cy - 30}" text-anchor="middle"
+      fill="var(--rel-${tone})">${spoke.reason === 'prefix' ? 'same family' : REASONS[spoke.reason].label}</text>`);
+
+    words.forEach((w, k) => {
+      const y = cy - 12 + k * 24;
+      const half = (w.length * CW) / 2 + 9;
+      parts.push(`<g class="orb__pill" data-word="${w}">
+        <rect x="${cx - half}" y="${y - 13}" width="${half * 2}" height="23" rx="11.5"
+          fill="var(--rel-${tone}-bg)" stroke="var(--rel-${tone})" stroke-width="1" opacity="0.95"></rect>
+        <text class="orb__word" x="${cx}" y="${y + 3}" text-anchor="middle"
+          fill="var(--rel-${tone})">${esc(w)}</text>
+      </g>`);
+    });
+  });
+  svg.innerHTML = parts.join('');
+}
+
+el('orb').addEventListener('click', (e) => {
+  const g = e.target.closest('[data-word]');
+  if (g) setQuery(g.dataset.word);
+});
+
+/* ------------------------------------------------------------------ *
+ * Wiring
+ * ------------------------------------------------------------------ */
+el('samples').innerHTML = SAMPLES
+  .map(([q, kind]) => `<button class="samp" data-q="${q}">${q} <em>${kind}</em></button>`)
+  .join('');
+el('samples').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-q]');
+  if (b) setQuery(b.dataset.q);
+});
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-word]');
+  if (b && !b.closest('#orb')) setQuery(b.dataset.word);
+});
+
+el('q').addEventListener('input', (e) => setQuery(e.target.value, { fromInput: true }));
+
+function render() {
+  const res = search(state.query);
+  state.result = res;
+  el('count').textContent = `${res.hits.size} / 2048`;
+  renderRoster(res);
+  renderConsole(res);
+  renderField(res);
+  renderOrbit(res);
+}
+
+render();
+</script>
