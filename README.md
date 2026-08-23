@@ -175,7 +175,7 @@ server's routing, headers and health contract.
   BEM-ish class names, system UI type. Added here: monospace for every word
   and number, and the seven relation-family hues, which are information rather
   than decoration.
-- **Versioning** — `vMAJOR.MINOR.<git commit count>`, assembled by one script
+- **Versioning** — `vYEAR.MONTH.<git commit count>`, assembled by one script
   and stamped into both artifacts, shown under the wordmark in tabular
   monospace. A build without git reports patch `0`; a shallow clone is refused
   rather than allowed to report a plausible lie.

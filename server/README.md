@@ -29,10 +29,12 @@ Each flag wins over its env var, which wins over the default.
 
 ## Version
 
-`vMAJOR.MINOR.PATCH`, where patch is the repository's commit count. Major and
-minor are the constants in `internal/version/version.go` — the single
-declaration in the tree, which `scripts/version.mjs` reads so the client and
-the binary can never disagree. Patch is stamped at link time; an unstamped
+`vYEAR.MONTH.PATCH` — a calendar version, where patch is the repository's commit
+count. Year and month are the constants in `internal/version/version.go` — the
+single declaration in the tree, which `scripts/version.mjs` reads so the client
+and the binary can never disagree. They are bumped by hand when a release line
+opens rather than read from the build clock, and the month is unpadded so the
+string stays valid semver. Patch is stamped at link time; an unstamped
 build reports `0`, which is visibly a non-release rather than a plausible lie.
 
 ## The handler

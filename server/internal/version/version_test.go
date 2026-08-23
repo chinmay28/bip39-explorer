@@ -10,7 +10,7 @@ import (
 func TestStringShape(t *testing.T) {
 	got := String()
 	if !regexp.MustCompile(`^v\d+\.\d+\.\d+$`).MatchString(got) {
-		t.Fatalf("version %q is not vMAJOR.MINOR.PATCH", got)
+		t.Fatalf("version %q is not vYEAR.MONTH.PATCH", got)
 	}
 }
 
@@ -22,5 +22,14 @@ func TestUnstampedBuildReportsPatchZero(t *testing.T) {
 	}
 	if got := String(); got[len(got)-2:] != ".0" {
 		t.Fatalf("unstamped build reports %q", got)
+	}
+}
+
+// The month goes into a version string that has to stay valid semver and has to
+// name a real month; scripts/version.mjs refuses to assemble one out of
+// anything else, so a typo should fail here first.
+func TestMonthIsACalendarMonth(t *testing.T) {
+	if Month < 1 || Month > 12 {
+		t.Errorf("Month = %d, want a calendar month (1-12)", Month)
 	}
 }

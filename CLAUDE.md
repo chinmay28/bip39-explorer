@@ -71,12 +71,14 @@ worse. Read them before changing a weight.
 
 ## Versioning
 
-`vMAJOR.MINOR.<git commit count>`. Major and minor are constants in
-`server/internal/version/version.go` — the single declaration in the tree,
-which `scripts/version.mjs` parses so the client and the binary can never
-disagree. Keep them in a form that file's regex can find. Patch is stamped at
-link time; a shallow clone deliberately reports `0` rather than a plausible
-lie.
+`vYEAR.MONTH.<git commit count>` — a calendar version, matching sand-vault's.
+Year and month are constants in `server/internal/version/version.go` — the
+single declaration in the tree, which `scripts/version.mjs` parses so the client
+and the binary can never disagree. Keep them in a form that file's regex can
+find, and keep the month unpadded (semver forbids a leading zero). Bump them by
+hand when a release line opens; they are deliberately not read from the build
+clock. Patch is stamped at link time; a shallow clone deliberately reports `0`
+rather than a plausible lie.
 
 ## Design language
 
