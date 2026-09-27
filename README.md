@@ -192,7 +192,8 @@ server's routing, headers and health contract.
   monospace. A build without git reports patch `0`; a shallow clone is refused
   rather than allowed to report a plausible lie.
 - **QuickStart** — root check, dedicated system user, hardened systemd unit,
-  health poll with rollback, re-runnable to upgrade.
+  health poll with rollback, re-runnable to upgrade, and the same one-liner
+  with `--uninstall` to take it away again.
 
 ## Safety
 
