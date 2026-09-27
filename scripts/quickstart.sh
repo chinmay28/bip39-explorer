@@ -6,6 +6,10 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/chinmay28/bip39-explorer/main/scripts/quickstart.sh | sudo bash
 #
+# and the same command with a flag takes it away again:
+#
+#   curl -fsSL https://raw.githubusercontent.com/chinmay28/bip39-explorer/main/scripts/quickstart.sh | sudo bash -s -- --uninstall
+#
 # It clones the repository and builds it here. Node and Go are needed at BUILD
 # time only (both installed automatically if missing); the running service has
 # no Node, npm, or JS runtime dependency — the deployed artifact is a single
@@ -37,6 +41,9 @@
 #   INSTALL_NODE     auto | never           install Node 22 if missing/old (default: auto)
 #   INSTALL_GO       auto | never           install Go if missing/old (default: auto)
 #
+# Uninstall with the same variables the install used, so it finds the same
+# prefix and user.
+#
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
@@ -60,7 +67,18 @@ step() { printf '\n%s%s%s\n' "$C_DIM" "$*" "$C_OFF"; }
 if [ "$(id -u)" -ne 0 ]; then
   die "Run as root: curl -fsSL .../quickstart.sh | sudo bash   (or: sudo ./scripts/quickstart.sh)"
 fi
-command -v systemctl >/dev/null 2>&1 || die "systemd is required (no systemctl found)."
+
+# Parsed before anything else happens, so an uninstall never installs a
+# toolchain or clones a repository on its way to removing one.
+case "${1:-}" in
+  --uninstall) UNINSTALL=1 ;;
+  "")          UNINSTALL=0 ;;
+  *)           die "Unknown option: $1 (only --uninstall is supported)" ;;
+esac
+
+if [ "$UNINSTALL" = 0 ]; then
+  command -v systemctl >/dev/null 2>&1 || die "systemd is required (no systemctl found)."
+fi
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -82,6 +100,57 @@ UNIT_PATH="/etc/systemd/system/${SERVICE_NAME}.service"
 NODE_MIN_MAJOR=20
 GO_MIN_MINOR=22
 GO_INSTALL_VERSION="1.24.7"
+
+# ---------------------------------------------------------------------------
+# Uninstall. Everything the install puts on the machine is the unit, the
+# prefix (binary, its .previous, and the clone) and the service user. There is
+# no data to keep — the service holds no state — so the only judgement call is
+# the user: removed when it is plainly the one this script makes, left alone
+# (with the command to remove it) when the operator named their own.
+#
+# The build toolchains stay: Node and Go may have been there first, and other
+# software on the machine may use them now either way.
+# ---------------------------------------------------------------------------
+uninstall() {
+  step "bip39-explorer uninstall"
+  case "$PREFIX" in
+    ""|/|/usr|/usr/local|/opt|/home|/root) die "Refusing to remove BIP39_PREFIX=$PREFIX" ;;
+  esac
+
+  if command -v systemctl >/dev/null 2>&1; then
+    log "Stopping and removing the $SERVICE_NAME service"
+    systemctl disable --now "$SERVICE_NAME.service" >/dev/null 2>&1 || true
+  fi
+  rm -f "$UNIT_PATH"
+  rm -rf "/etc/systemd/system/${SERVICE_NAME}.service.d"
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload 2>/dev/null || true
+    systemctl reset-failed "$SERVICE_NAME.service" >/dev/null 2>&1 || true
+  fi
+
+  log "Removing $PREFIX"
+  rm -rf "$PREFIX"
+
+  local user_note=""
+  if id -u "$SVC_USER" >/dev/null 2>&1; then
+    if [ -z "${BIP39_USER:-}" ] && [ "$(getent passwd "$SVC_USER" | cut -d: -f7)" = "/usr/sbin/nologin" ]; then
+      log "Removing system user $SVC_USER"
+      userdel "$SVC_USER" 2>/dev/null || user_note="Could not remove user $SVC_USER: sudo userdel $SVC_USER"
+    else
+      user_note="Kept user $SVC_USER: BIP39_USER named it, so it may not be ours. To remove it: sudo userdel $SVC_USER"
+    fi
+  fi
+
+  step "Removed"
+  ok "No data to keep — the explorer stores nothing."
+  [ -n "$user_note" ] && printf '  %s\n' "$user_note"
+  printf '  %sKept the build toolchains (other software may use them). If nothing else does:%s\n' "$C_DIM" "$C_OFF"
+  printf '    Go:   sudo rm -rf /usr/local/go /usr/local/bin/go\n'
+  printf '    Node: sudo apt-get remove nodejs\n'
+  if [ "$IN_PLACE" = "1" ]; then
+    printf '  %sThe checkout this ran from is untouched: %s%s\n' "$C_DIM" "$SRC_DIR" "$C_OFF"
+  fi
+}
 
 # If this script is being run from inside an existing checkout rather than
 # piped from curl, build that checkout in place.
@@ -316,6 +385,10 @@ activate() {
 
 # ---------------------------------------------------------------------------
 main() {
+  if [ "$UNINSTALL" = 1 ]; then
+    uninstall
+    return
+  fi
   step "bip39-explorer quick-start"
   ensure_base
   ensure_node

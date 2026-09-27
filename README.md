@@ -52,6 +52,18 @@ the new one is unhealthy. Unlike its sibling project CountRoster there is
 nothing to back up first — the service holds no state at all, so an upgrade
 has nothing it could lose.
 
+To uninstall, run the same command with `--uninstall`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chinmay28/bip39-explorer/main/scripts/quickstart.sh | sudo bash -s -- --uninstall
+```
+
+It stops and disables the service, removes its unit, the install prefix
+(`/opt/bip39-explorer`: binary and source) and the `bip39` user. There is no
+data to keep; the Node and Go toolchains are left in place in case anything
+else uses them, and the script prints how to remove them. If the install set
+`BIP39_PREFIX` or `BIP39_USER`, set them the same way for the uninstall.
+
 Override defaults with env vars (`PORT`, `HOST`, `BIP39_REF`, `BIP39_PREFIX`,
 `BIP39_USER`, …). Manage it with `systemctl status bip39-explorer` and
 `journalctl -u bip39-explorer -f`.
