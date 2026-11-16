@@ -187,8 +187,9 @@ server's routing, headers and health contract.
   BEM-ish class names, system UI type. Added here: monospace for every word
   and number, and the seven relation-family hues, which are information rather
   than decoration.
-- **Versioning** — `vYEAR.MONTH.<git commit count>`, assembled by one script
-  and stamped into both artifacts, shown under the wordmark in tabular
+- **Versioning** — `vYEAR.MONTH.<git commit count>`, YEAR.MONTH being the
+  month of the commit (SandHarbor's scheme), assembled by one script and
+  stamped into every artifact (binary, page, APK), shown under the wordmark in tabular
   monospace. A build without git reports patch `0`; a shallow clone is refused
   rather than allowed to report a plausible lie.
 - **QuickStart** — root check, dedicated system user, hardened systemd unit,

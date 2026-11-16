@@ -71,14 +71,33 @@ worse. Read them before changing a weight.
 
 ## Versioning
 
-`vYEAR.MONTH.<git commit count>` — a calendar version, matching sand-vault's.
-Year and month are constants in `server/internal/version/version.go` — the
-single declaration in the tree, which `scripts/version.mjs` parses so the client
-and the binary can never disagree. Keep them in a form that file's regex can
-find, and keep the month unpadded (semver forbids a leading zero). Bump them by
-hand when a release line opens; they are deliberately not read from the build
-clock. Patch is stamped at link time; a shallow clone deliberately reports `0`
-rather than a plausible lie.
+`vYEAR.MONTH.<git commit count>` — a calendar version, matching SandHarbor's.
+YEAR.MONTH is the month of HEAD's **committer date, in the committer's own
+timezone** (`git log -1 --format=%cI`, first seven characters); the patch is
+`git rev-list --count HEAD`. There are no constants to bump: the line moves by
+itself with the first commit of a new month, and it is never the build clock,
+so a rebuild of an old commit still names what it shipped as. The month is
+unpadded (semver forbids a leading zero).
+
+`scripts/version.mjs` is the one place it is assembled: `--patch`, `--date`
+and `--ldflags` (the `-X …version.Patch/Date` flags every Go build stamps:
+`build:server`, `quickstart.sh`, the release workflow), Vite's `define` inlines
+the string into the bundle (`apps/web/build-version.ts`), and the release
+passes it to Gradle as `-PappVersionName/-PappVersionCode` for the APK. An
+unstamped `go build` reports the build clock's month and patch `0`. **Don't
+assert a literal version in a test** — it changes with every commit. A shallow
+clone deliberately reports patch `0` rather than a plausible lie, so anything
+that builds a release needs the full history (`fetch-depth: 0`,
+`--filter=blob:none`).
+
+Releases: `.github/workflows/release.yml` runs on `v*` tags, pushes to `main`
+and manual dispatch. It refuses patch 0 and a tag that is not its commit's
+version, and the gate is a `## <version>` heading in `CHANGELOG.md` — a push
+to main without one is skipped, a tag without one fails. It publishes
+`bip39-explorer-<version>-linux-{arm64,amd64}`, `bip39-explorer.html`,
+`bip39-explorer.apk` (a fixed name, so `…/releases/latest/download/bip39-explorer.apk`
+always works) and `SHA256SUMS`. Keep work-in-progress notes under
+`## Unreleased`, which never matches a version.
 
 ## Design language
 
