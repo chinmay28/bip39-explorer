@@ -12,7 +12,7 @@ builds a different version, and skips a push to `main` that names none. Work
 not yet released sits under `## Unreleased`, which never matches a version;
 rename it to the version when cutting the release.
 
-## Unreleased
+## v2026.11.11
 
 **Downloads:** `bip39-explorer-<version>-linux-arm64` and `-linux-amd64` (the
 server, with the explorer embedded), `bip39-explorer.html` (the whole explorer
