@@ -1,6 +1,8 @@
 import type { LetterGroup, Hit } from '../lib/letters';
 import { FAMILIES, FAMILY_LABEL } from '../lib/relations';
 import { APP_VERSION } from '../version';
+import { nativeApp } from '../lib/nativeApp';
+import { DevMark } from './DevMark';
 
 /**
  * The furniture around the three views: brand, search, trail, the letters
@@ -48,10 +50,30 @@ export function Header({
         ))}
       </nav>
       )}
-      <p className="app__offline">
-        No network calls, ever.<br />Never type a real seed phrase.
-      </p>
+      <div className="app__header-end">
+        <p className="app__offline">
+          No network calls, ever.<br />Never type a real seed phrase.
+        </p>
+        <AppAbout />
+        <DevMark />
+      </div>
     </header>
+  );
+}
+
+/** Inside the Android app only: the way to its native About screen. */
+function AppAbout() {
+  const app = nativeApp();
+  if (!app) return null;
+  return (
+    <button type="button" className="app__about" aria-label="About this app" title="About this app"
+      onClick={() => app.about()}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+        strokeLinecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 11v5M12 8h.01" />
+      </svg>
+    </button>
   );
 }
 
