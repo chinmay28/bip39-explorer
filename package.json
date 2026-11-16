@@ -15,6 +15,7 @@
     "build:single": "node scripts/bundle-single.mjs",
     "build:embed": "node scripts/embed-client.mjs",
     "build:server": "cd server && CGO_ENABLED=0 go build -trimpath -ldflags \"-s -w $(node ../scripts/version.mjs --ldflags)\" -o bin/bip39-explorer ./cmd/bip39-explorer",
+    "icons": "cd server && go run ./cmd/bip39-icons",
     "test": "npm run test --workspaces --if-present && npm run test:index && npm run test:server",
     "test:index": "python3 tools/check_index.py",
     "test:server": "cd server && go test ./...",

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DayNight follows the system. That matters beyond the native screens:
+         a web view takes prefers-color-scheme from its activity's theme
+         (isLightTheme), so this is what lets the page pick its own dark
+         tokens. Algorithmic darkening stays off (MainActivity): the page has
+         a dark theme of its own and must not be repainted. -->
+    <style name="Theme.Bip39" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/bip_primary</item>
+        <item name="colorOnPrimary">@color/bip_primary_ink</item>
+        <item name="colorSecondary">@color/bip_primary</item>
+        <item name="android:colorBackground">@color/bip_bg</item>
+        <item name="colorSurface">@color/bip_bg</item>
+        <item name="android:windowBackground">@color/bip_bg</item>
+    </style>
+</resources>

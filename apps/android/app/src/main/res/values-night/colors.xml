@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- apps/web/src/styles.css, prefers-color-scheme: dark. -->
+    <color name="bip_bg">#FF18181B</color>
+    <color name="bip_text">#FFF4F4F5</color>
+    <color name="bip_muted">#FFA1A1AA</color>
+    <color name="bip_veil">#C718181B</color>
+</resources>

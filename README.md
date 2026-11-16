@@ -31,6 +31,9 @@ npm run build          # client → single-file bundle → embed → static Go b
 | `dist/bip39-explorer.html` | **One file, ~1 MB.** The whole app inlined — put it on a USB stick, mail it, open it from `file://` on a machine with no network at all. |
 | `server/bin/bip39-explorer` | A static binary with the PWA embedded. No runtime dependencies. |
 
+The Android app (`apps/android`, [guide](docs/android.md)) packages the
+single-file page.
+
 ### Quick start on Linux (Ubuntu / Raspberry Pi)
 
 Install as a hardened **systemd service** with one command:
@@ -157,11 +160,20 @@ measured from what was actually drawn, so a sparse word gets a small map and
 an opened branch gets room. Touch targets are finger-sized, and the search
 field is 16 px so iOS does not zoom on focus.
 
+## On Android
+
+**BIP-39 Explorer for Android** carries the single-file page inside the APK
+and has no network permission at all — no server, no setup. Install
+[`bip39-explorer.apk`](https://github.com/chinmay28/bip39-explorer/releases/latest/download/bip39-explorer.apk)
+from the latest release; see the [guide](docs/android.md) and how it is
+[built](apps/android/README.md).
+
 ## Layout
 
 ```
 bip39-explorer/
 ├── apps/web/          # @bip39-explorer/web — the PWA (Vite + React + TS)
+├── apps/android/      # the Android app: the page in a web view, from the APK
 ├── server/            # the Go binary that serves it; no database, no API
 ├── tools/             # the Python pipeline that generates the semantic index
 ├── data/              # the wordlist and the committed index

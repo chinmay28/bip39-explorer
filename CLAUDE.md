@@ -15,6 +15,10 @@ carries the whole dataset.
 - `tools/` — the Python pipeline that generates `data/semantic-index.json`.
   Run offline, output committed.
 - `data/` — the wordlist and the generated index.
+- `apps/android` — BIP-39 Explorer for Android: the single-file page
+  (`dist/bip39-explorer.html`) packaged in the APK and served to a web view by
+  WebViewAssetLoader. `:core` (plain Kotlin, JVM-tested) decides, `:app` is
+  glue. See `apps/android/README.md`.
 
 ## Commands
 
@@ -24,6 +28,14 @@ npm test           # vitest (engine + app) · tools/check_index.py · go test ./
 npm run typecheck  # tsc --noEmit + go vet
 npm run build      # client → single-file bundle → embed → Go binary
 npm run dev        # http://localhost:5173
+npm run icons      # regenerate the Android icons from apps/web/public/icon-512.png
+```
+
+Android (JDK 17+, Android SDK; build the page first with `npm run build:web`,
+or pass `-PbuildWeb=true`):
+
+```bash
+cd apps/android && ./gradlew :core:test :app:lintDebug :app:assembleRelease
 ```
 
 Single test file: `npx vitest run src/lib/graph.test.ts` inside `apps/web`.
@@ -40,6 +52,11 @@ and the server sends `connect-src 'none'` so a regression fails loudly in the
 browser rather than quietly in review.
 
 If a change would introduce a fetch, it is the wrong change.
+
+The Android app makes the same rule a system one: **it holds no permissions,
+INTERNET above all**. `check<Variant>Permissions` fails the Gradle build if
+the merged manifest requests anything, and CI checks the APK again. Don't add
+a permission, a share target, or anything that accepts pasted text.
 
 ## Two kinds of knowing, kept apart
 

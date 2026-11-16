@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The icon's plate colour. Generated from apps/web/public/icon-512.png by server/cmd/bip39-icons. -->
+<resources>
+    <color name="ic_launcher_background">#4ECDC4</color>
+</resources>

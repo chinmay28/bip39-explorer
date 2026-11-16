@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- apps/web/src/styles.css, light tokens; values-night/ has the dark. -->
+    <color name="bip_bg">#FFFAFAFA</color>
+    <color name="bip_text">#FF1A1A1A</color>
+    <color name="bip_muted">#FF6B7280</color>
+    <color name="bip_primary">#FF4ECDC4</color>
+    <color name="bip_primary_ink">#FF06403B</color>
+    <!-- The badge artwork is dark in both themes, as on the web. -->
+    <color name="bip_badge_plate">#FF101010</color>
+    <!-- The flash's veil: the background at 78%, as color-mix() in the CSS. -->
+    <color name="bip_veil">#C7FAFAFA</color>
+</resources>
