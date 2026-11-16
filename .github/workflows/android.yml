@@ -1,0 +1,109 @@
+name: BIP-39 Explorer (Android app)
+
+# Builds the phone app and runs its tests whenever it changes, or anything it
+# packages does: the APK carries the single-file page, built from apps/web
+# and data/, so a change to the client is a change to the app. The page
+# bridge's contract with the web client is tested in
+# apps/web/src/lib/nativeApp.bridge.test.ts.
+
+on:
+  pull_request:
+    paths:
+      - "apps/android/**"
+      - "apps/web/**"
+      - "data/**"
+      - "scripts/bundle-single.mjs"
+      - "scripts/version.mjs"
+      - "server/cmd/bip39-icons/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/android/**"
+      - "apps/web/**"
+      - "data/**"
+      - "scripts/bundle-single.mjs"
+      - "scripts/version.mjs"
+      - "server/cmd/bip39-icons/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test the APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the page shows its version, whose patch is the commit count
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The page the APK carries, built first: the Gradle build refuses to
+      # package an app without it.
+      - name: Build the web page
+        working-directory: .
+        run: npm ci && npm run build:web
+
+      # The launcher icons are derived from the web app's icon; a stale or
+      # hand-edited one fails here.
+      - name: Icons match their source
+        working-directory: server
+        run: go test -count=1 ./cmd/bip39-icons/
+
+      # Everything the app decides, as plain JVM tests.
+      - name: Unit tests
+        run: ./gradlew --no-daemon :core:test
+
+      # The runner image ships the Android SDK; ANDROID_HOME points at it.
+      - name: Lint
+        run: ./gradlew --no-daemon :app:lintDebug
+
+      - name: Build
+        run: ./gradlew --no-daemon :app:assembleRelease
+
+      # The two things the APK must get right: it carries the page, and it
+      # holds no permission — INTERNET above all. The build checks the merged
+      # manifest already; this checks what actually shipped.
+      - name: Check the APK
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk)
+          unzip -l "$apk" | grep -q "assets/web/index.html" || { echo "no assets/web/index.html in $apk" >&2; exit 1; }
+          aapt2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          perms=$("$aapt2" dump permissions "$apk" | sed -n "s/^uses-permission: name='\(.*\)'.*/\1/p" \
+            | grep -v '\.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION$' || true)
+          if [ -n "$perms" ]; then
+            echo "the APK requests permissions it must not hold:" >&2
+            echo "$perms" >&2
+            exit 1
+          fi
+          echo "page present; no permissions requested"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bip39-explorer-apk
+          path: apps/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

@@ -57,5 +57,11 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 1500,
+    // Every asset the app imports (the developer badge's two PNGs) rides
+    // inside the bundle as a data: URI, whatever its size. That keeps the
+    // single-file page (scripts/bundle-single.mjs) and the Android app's copy
+    // of it whole: an <img> pointing at assets/… would be a broken image from
+    // file:// and a request the app has nowhere to send.
+    assetsInlineLimit: () => true,
   },
 });

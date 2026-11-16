@@ -166,6 +166,120 @@ button { font: inherit; }
 }
 @media (min-width: 1040px) { .app__offline { display: block; } }
 
+/* Right-hand end of the header: the offline note (wide screens), the app's
+   About button (inside the Android app only) and the developer mark. */
+.app__header-end { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+.app__about {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.app__about svg { width: 1.3rem; height: 1.3rem; }
+.app__about:hover { color: var(--text); }
+
+/* Developer credit mark — CountRoster's, as-is. The artwork is a dark badge
+   of its own, so it stays dark in both themes and hangs off a hairline; the
+   ring keeps it from floating as a hole on the light background. The button
+   is a 44px target around a 36px badge: below 36px the wordmark collapses
+   into an anonymous dark dot. */
+.dev-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  padding: 0 0 0 0.6rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dev-mark:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 0.25rem; }
+.dev-mark:active .dev-mark__logo { transform: scale(0.94); }
+.dev-mark__logo {
+  display: block;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: #101010;
+  box-shadow: 0 0 0 1px var(--border);
+  opacity: 0.8;
+  transition: opacity 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+.dev-mark:hover .dev-mark__logo,
+.dev-mark:focus-visible .dev-mark__logo {
+  opacity: 1;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 55%, transparent);
+}
+
+/* The badge thrown up full screen for three seconds. Everything below is on
+   that one clock: the veil fades in, holds and fades out over exactly
+   DEV_FLASH_MS (DevMark.tsx), which is when React unmounts it. */
+.dev-flash {
+  position: fixed;
+  inset: 0;
+  /* Above every other layer: header (30), tab bar, popovers. */
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: saturate(1.2) blur(14px);
+  animation: dev-flash-veil 3s ease-in-out forwards;
+}
+/* Badge over handle, moving as one piece — the scale lives here so the two
+   never drift apart mid-animation. */
+.dev-flash__lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.35rem;
+  animation: dev-flash-badge 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.dev-flash__logo {
+  width: min(64vmin, 26rem);
+  height: min(64vmin, 26rem);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--border), var(--shadow-lg);
+}
+/* Monospace to echo the badge's own wordmark, tracked out so it reads as a
+   signature under the mark rather than a line of body copy. */
+.dev-flash__handle {
+  font-family: var(--mono);
+  font-size: clamp(0.85rem, 3.2vmin, 1.1rem);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+@keyframes dev-flash-veil {
+  0% { opacity: 0; }
+  7% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* Lands with a small overshoot, then drifts out as the veil clears. */
+@keyframes dev-flash-badge {
+  0% { transform: scale(0.82); }
+  14% { transform: scale(1.02); }
+  22% { transform: scale(1); }
+  82% { transform: scale(1); }
+  100% { transform: scale(1.06); }
+}
+/* The cross-fade stays — it isn't motion — but the scale doesn't. */
+@media (prefers-reduced-motion: reduce) {
+  .dev-flash__lockup { animation: none; }
+}
+
 /* ---------------- search ---------------- */
 .search {
   display: flex;

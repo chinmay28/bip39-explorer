@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from './App';
 
@@ -123,5 +123,55 @@ describe('the explorer', () => {
     setup();
     expect(screen.getByText(/no server, no model, no network request/i)).toBeInTheDocument();
     expect(screen.getAllByText(/never type a real seed phrase/i).length).toBeGreaterThan(0);
+  });
+});
+
+describe('developer mark in the header', () => {
+  it('renders the credit badge, inlined, and never as a link', () => {
+    setup();
+    const mark = screen.getByRole('button', { name: 'Show the developer badge' });
+    expect(mark.querySelector('img')).not.toBeNull();
+    // A credit, not a destination — it must not navigate anywhere.
+    expect(mark.closest('a')).toBeNull();
+    expect(screen.queryByText('github.com/chinmay28')).toBeNull();
+  });
+
+  it('flashes the badge full screen and clears itself after three seconds', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'Show the developer badge' }));
+    expect(await screen.findByRole('img', { name: /CM Hegday/ })).toBeInTheDocument();
+    expect(screen.getByText('github.com/chinmay28')).toBeInTheDocument();
+    // Real timers: the three seconds are the feature.
+    await waitFor(() => expect(document.querySelector('.dev-flash')).toBeNull(), { timeout: 5000 });
+  }, 10000);
+
+  it('ends early on a tap or on Escape', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'Show the developer badge' }));
+    await user.click(document.querySelector('.dev-flash') as HTMLElement);
+    expect(document.querySelector('.dev-flash')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Show the developer badge' }));
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(document.querySelector('.dev-flash')).toBeNull());
+  });
+});
+
+describe('inside the Android app', () => {
+  afterEach(() => {
+    delete (window as { bip39explorerApp?: unknown }).bip39explorerApp;
+  });
+
+  it('shows no About button in a plain browser', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: 'About this app' })).toBeNull();
+  });
+
+  it('opens the native About screen through the bridge', async () => {
+    const about = vi.fn();
+    (window as { bip39explorerApp?: unknown }).bip39explorerApp = Object.freeze({ about });
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'About this app' }));
+    expect(about).toHaveBeenCalledTimes(1);
   });
 });

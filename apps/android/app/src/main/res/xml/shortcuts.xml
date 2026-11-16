@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the icon: the About screen (version, developer badge). The
+     page offers the same from its header, inside the app only. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutId="about"
+        android:shortcutShortLabel="@string/about_short">
+        <intent
+            android:action="io.github.chinmay28.bip39explorer.ABOUT"
+            android:targetClass="io.github.chinmay28.bip39explorer.AboutActivity"
+            android:targetPackage="io.github.chinmay28.bip39explorer" />
+    </shortcut>
+</shortcuts>

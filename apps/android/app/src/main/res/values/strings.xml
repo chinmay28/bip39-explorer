@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BIP-39 Explorer</string>
+    <string name="tagline">Offline wordlist explorer</string>
+    <string name="about_title">About</string>
+    <string name="about_short">About</string>
+    <string name="about_version">%1$s · build %2$d</string>
+    <string name="about_offline">Everything runs on this phone. The wordlist, the relation graph and every search are inside the app, and the app has no network permission: Android itself refuses it any connection.</string>
+    <string name="about_safety">There is nowhere here to type a seed phrase, and there never will be. Never type a real one into anything.</string>
+    <string name="about_keyboard">Your keyboard is asked not to learn the words you type in the explorer.</string>
+    <string name="about_source">Source code</string>
+    <string name="about_source_url">https://github.com/chinmay28/bip39-explorer</string>
+    <string name="about_license">Open source under the GNU AGPL-3.0. Semantic index CC BY-SA 4.0 after ConceptNet.</string>
+    <string name="dev_badge">Show the developer badge</string>
+    <string name="dev_badge_full">Built by CM Hegday — 0x434d</string>
+    <string name="dev_handle">github.com/chinmay28</string>
+    <string name="no_browser">No browser to open the link with</string>
+</resources>

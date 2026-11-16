@@ -276,10 +276,12 @@ build() {
   mkdir -p server/cmd/bip39-explorer/webdist
   cp -r apps/web/dist/. server/cmd/bip39-explorer/webdist/
 
-  local patch
-  patch="$(node scripts/version.mjs --patch)"
+  # The commit count and the commit's month, as -X flags: the same stamp
+  # `npm run build` and the release workflow use.
+  local stamp
+  stamp="$(node scripts/version.mjs --ldflags)"
   ( cd server && CGO_ENABLED=0 go build -trimpath \
-      -ldflags "-s -w -X github.com/chinmay28/bip39-explorer/server/internal/version.Patch=${patch}" \
+      -ldflags "-s -w ${stamp}" \
       -o "$STAGED" ./cmd/bip39-explorer )
   chmod 0755 "$STAGED"
   ok "Built $("$STAGED" version)"
